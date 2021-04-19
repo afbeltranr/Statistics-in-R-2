@@ -50,3 +50,8 @@ gapminder %>% filter(gdpPercap < 50000) %>%
 summary(lm(lifeExp ~ gdpPercap))
 
 summary(lm(lifeExp ~ gdpPercap+pop))
+
+x <- rnorm(10000, mean = 12, sd =0.01)
+library(car)
+qqPlot(x)
+hist(x)
