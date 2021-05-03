@@ -16,6 +16,23 @@ output:
     fig_height: 2
     
 ---
+---
+
+![](kickass.jpg)
+
+J.D. Long
+
+## Por qué aprender R?
+
+- Nos conecta con una comunidad genial.
+- La programación es un super poder al cual todos tenemos acceso.
+- Podemos limpiar, analizar, graficar y comunicarnos con nuestros datos, todo en un solo sitio.
+- Automatización.
+- Es gratis! 
+
+![](itsfree.jpg)
+
+
 
 ## Introducción: R
 
