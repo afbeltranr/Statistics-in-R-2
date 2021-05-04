@@ -1,7 +1,11 @@
-# url1pop <- "https://raw.githubusercontent.com/genomicsclass/dagdata/master/inst/extdata/femaleControlsPopulation.csv"
-# filename <- basename(url)
-# download(url, destfile=filename)
-# x <- unlist( read.csv(filename) )
+library(downloader) 
+urlpop <- "https://raw.githubusercontent.com/genomicsclass/dagdata/master/inst/extdata/femaleControlsPopulation.csv"
+filename <- basename(urlpop)
+download(urlpop, destfile=filename)
+urlpop <- "https://raw.githubusercontent.com/genomicsclass/dagdata/master/inst/extdata/femaleMiceWeights.csv"
+filename <- basename(urlpop)
+download(urlpop, destfile=filename)
+
 
 
 library(dplyr)
