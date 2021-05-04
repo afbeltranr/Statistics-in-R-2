@@ -1,0 +1,69 @@
+---
+title: "Pruebas de hipótesis y ANOVA"
+author: "Andres Felipe Beltran"
+date: "04/05/2021"
+output: 
+    revealjs::revealjs_presentation:
+      
+      self_contained: false
+      reveal_plugins: [ "zoom", "notes", "chalkboard", "menu"]
+      reveal_options:
+        chalkboard: 
+          theme: chalkboard
+          toggleNotesButton: true
+        menu:
+          numbers: true
+        slideNumber: true
+      theme :  white
+   
+---
+
+<style>
+.reveal section img { background:none; border:none; box-shadow:none; }
+</style>
+
+![](img/1.svg)
+
+---
+
+![](img/2.svg)
+
+---
+
+<img src="img/3.svg"  height="600">
+
+
+
+---
+
+![](img/4.svg)
+
+
+---
+
+![](img/5.svg)
+
+
+---
+
+
+
+<img src="img/6.svg"  width="1700">
+
+
+
+# Distribuciones teoricas
+
+
+# Distribucion normal
+![](img/normal.jpg)
+
+
+
+# Distribucion chi-cuadrado
+![](img/chisq.jpg)
+
+
+
+# distribucion F
+![](img/F.jpg)

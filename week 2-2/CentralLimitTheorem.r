@@ -65,9 +65,9 @@ n <- 10000
 nulls <- vector("numeric",n)
 for (i in 1:n){
   
-  control <- sample(population,3)
-  treatment <- sample(population,3)
-  se <- sqrt(var(treatment)/3+ var(control)/3)
+  control <- sample(population,12)
+  treatment <- sample(population,12)
+  se <- sqrt(var(treatment)/12 + var(control)/12)
   nulls[i] <- (mean(treatment) - mean(control)) / se
 }  
 
