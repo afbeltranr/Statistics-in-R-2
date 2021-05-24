@@ -1,0 +1,233 @@
+---
+title: "Uncertainty"
+author: "Andres Felipe Beltran"
+date: "5/18/2021"
+output:
+   rmdformats::downcute:
+params:
+  lightbox = TRUE
+  gallery = TRUE
+---
+
+Calculo de la incertidumbre del punto de equivalencia de una titulación
+
+* Paquetes para estimación de incertidumbre
+* Estimación de incertidumbre 
+
+# Paquetes
+
+* `AtomicWeights`
+* `uLPAQ`
+* `PeriodicTable`
+* `Derivative`
+* `MetRology`
+
+
+```{r eval = FALSE , message = FALSE}
+install_github('https://github.com/sergmonic/AtomicWeights/', force = T)
+install_github('https://github.com/sergmonic/uLPAQ/',force=TRUE)
+```
+
+
+```{r mesage = FALSE}
+library(AtomicWeights)
+library(uLPAQ)
+H<-getAtomicWeight('H')
+H
+```
+
+
+```{r}
+head(atomicWeightsData)
+```
+
+
+
+```{r}
+print(c(H[1,1]-H[1,2],H[1,1]+H[1,2]))
+```
+
+* Cuando hay un intervalo reportado es diferente a cuando es (2), el ultimo es cuandon es la incertidumbre estandar
+
+* Ejemplo con el peso de metano $C_H_4$
+
+```{r}
+getMolarMass(atomsType = c('C', 'H'),
+    c(1,4)         )
+```
+
+
+* Ejemplo con el peso de biftalato de potasio $C_8H_5KO_4$
+
+```{r}
+getMolarMass(atomsType = c('C', 'H', 'K', 'O'),
+    c(8,5,1,4)         )
+```
+* `u` incertidumbre estandar
+* `U` incertidumbre expandida
+
+
+# Aplicación de estimación de incertidumbre
+
+La información debería venir de los certificados de calibración de cada balanza. Aquí el creador del paquete utilizó información del catálogo
+
+**Buscar definiciones de cada uno de los elementos de la columna característica para NO enseñarlo por encima e.g. sensiblidad como pendiente**
+
+* Capacidad máxima : peso máxima
+* Legibilidad: mínima división de escala (d) = Resolución
+* Repetibilidad = desviación de una muestra respecto al promedio de masa cuando se pesa la carga máxima. 
+*Desviaci+on de la linealidad: error max
+* Sensibilidad a la deriva térmica : cambio de la sensiblidad en función a la temperatura
+* Sensibilidad: pendiente de masas nominales vs lecturas
+* Tolerancia en la sensibilidad : error máximo en la pendiente 
+
+```{r}
+balanzas<-balanzasLPAQ
+balanzas
+```
+
+```{r}
+data <- datosAnalisis
+```
+
+```{r}
+condiciones <- condAmbientales
+```
+
+
+# Incertidumbre estándar para material volumétrico de vidrio y micropipetas tipo A
+
+```{r}
+instVolumetrico(nominal=100,tipo="balon",clase="B")
+
+```
+* u_V_C = calibración
+* u_V_T = efecto del cambio de la temperatura respecto a 20 C
+* EMP = Error maximo permitido para el balon 
+
+Un cambio de clase:
+
+```{r}
+instVolumetrico(nominal=100,tipo="balon",clase="A")
+
+```
+Un cambio de temperatura:
+
+```{r}
+instVolumetrico(nominal=100,
+                tipo="balon",
+                clase="A",
+                temp = 17.5)
+```
+```{r}
+balon100 <- instVolumetrico(nominal=100,
+                tipo="balon",
+                clase="A",
+                temp = 16)
+balon100
+```
+```{r}
+mil10bureta25<- instVolumetrico(nominal=25,
+                           subdivision =0.1 ,
+                           tipo="bureta",
+                           clase="A_AS",
+                           temp=16,
+                           volumen = 10.1)
+mil10bureta25
+```
+```{r}
+bureta25<- instVolumetrico(nominal=25,
+                           subdivision =0.1 ,
+                           tipo="bureta",
+                           clase="A_AS",
+                           temp=16,
+                           # volumen = 10.1
+                           )
+bureta25
+```
+```{r}
+pipeta10 <- instVolumetrico(nominal=10,
+                         
+                           tipo="pipeta",
+                           clase="A_AS",
+                           temp=16,
+                           # volumen = 10.1
+                           )
+pipeta10$u_V
+```
+para una micropipeta:
+
+```{r}
+micropipeta1 <- instVolumetrico(nominal=1,
+                            tipo="micropipeta",
+                           
+                             temp=16,
+                            volumen = 1
+                           )
+micropipeta1
+```
+
+* Como incluir los datos de verificacion para el calculo de la incertidumbre?
+
+* Cambio de viscosidad con cambio de solvente? no esta considerado en este paquete
+
+# Punto final
+
+
+```{r}
+datosAnalisis$valoracionNaOH$V
+
+```
+```{r}
+plot(datosAnalisis$valoracionNaOH$V,
+     datosAnalisis$valoracionNaOH$pH)
+```
+```{r}
+pf <- puntoFinal(datosAnalisis$valoracionNaOH$V, datosAnalisis$valoracionNaOH$pH, intervalo_x = c(0, 0))
+pf$ede$u_PE
+pf$ede$PE
+
+
+```
+```{r}
+pf$ede$u_PE/pf$ede$PE*100
+ pf$d1num$u_PE/pf$d1num$PE*100
+```
+
+
+
+```{r}
+data("EMP_materialVolumetrico")
+```
+
+El error máximo permitido es para la temperatura de calibración.
+
+El efecto de la temperatura viene del coeficiente de expansión del solvente e.g. agua.
+
+
+# Minima cantidad a pesar:
+
+función `masa_minima` 
+
+```{r}
+masa_minima(u_r = 0.1, 
+            densidad = 8000, 
+            balanza = 'XPE205')
+```
+
+```{r}
+masa <- u_masa(lectura= 0.0601, densidad =1634, balanza = 'XPE205')
+masa$m_s$ms # masa corregida por el empuke del aire
+masa$m_s$u_ms/masa$m_s$ms*100
+```
+Para nuevas balanzas:
+
+verificar si cambia el intervalo
+(serviria para aquellas que tengan un solo intervalo)
+* se tiene para 
+
+# para nuevas micropipetas
+
+argumento calibracion
+sesgo incertd.sesgo(en mL) reptibilidad, factor de cobertura (cambiar por $\sqrt{3}$)
+

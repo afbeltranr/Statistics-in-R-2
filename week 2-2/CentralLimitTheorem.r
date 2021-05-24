@@ -71,6 +71,13 @@ for (i in 1:n){
   nulls[i] <- (mean(treatment) - mean(control)) / se
 }  
 
+for (i in 1:n){
+  
+  prom <- sample(CaO,12)
+  
+  nulls[i] <- prom
+}
+
 mypar()
 
 qqnorm(nulls)

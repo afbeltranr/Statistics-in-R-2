@@ -7,10 +7,16 @@ filename <- basename(url)
 download(url,filename)
 
 library(readr)
-msleep_ggplot2 <- read_csv("msleep_ggplot2.csv")
-View(msleep_ggplot2)
+msleep <- read_csv("msleep_ggplot2.csv")
+View(msleep)
+library(dplyr)
 
-# estudiantes <- c('Carlos Amado','Daniel Martinez','Gabriel Ballen','Isabella Blanco','Javier Suesca','Juliana Maldonado','Juliana Penaloza','Laura Cardenas','Leidy Bohorquez','Magda Isabel','Wendy Gonzalez', 'Lizeth Pineda')
+carni <- dplyr::filter(msleep, vore == 'carni') %>% select(sleep_total) 
+omni <- dplyr::filter(msleep, vore == 'omni') %>% select(sleep_total) 
+
+
+
+estudiantes <- c('Carlos Amado','Daniel Martinez','Gabriel Ballen','Isabella Blanco','Javier Suesca','Juliana Maldonado','Juliana Penaloza','Laura Cardenas','Leidy Bohorquez','Magda Isabel','Wendy Gonzalez', 'Lizeth Pineda')
  
 sample(estudiantes,1) 
   

@@ -1,5 +1,5 @@
 ---
-title: "Pruebas de hipótesis y ANOVA"
+title: "Pruebas de hipótesis y ggplot2"
 author: "Andres Felipe Beltran"
 date: "04/05/2021"
 output: 
