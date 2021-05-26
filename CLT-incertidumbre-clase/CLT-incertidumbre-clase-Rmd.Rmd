@@ -1,0 +1,53 @@
+---
+title: "Teorema del límite central e incertidumbre en R"
+author: "Andres Felipe Beltran"
+date: "26/05/2021"
+output: 
+    revealjs::revealjs_presentation:
+      
+      # self_contained: false
+      # reveal_plugins: [ "zoom", "notes", "chalkboard", "menu"]
+      # reveal_options:
+      #   chalkboard: 
+      #     theme: chalkboard
+      #     toggleNotesButton: true
+      #   menu:
+      #     numbers: true
+      #   slideNumber: true
+      # theme :  white
+   
+---
+
+
+<style>
+.reveal section img { background:none; border:none; box-shadow:none; }
+</style>
+
+
+![](img/Antwerp.jpg)
+
+---
+
+![](img/antwerpmap.jpg)
+
+---
+
+![](img/tomorrow.webp)
+
+
+---
+
+![puerto de antwerp](img/antwerpport.jpg)
+
+
+
+---
+
+
+![](img/facon.png)
+
+---
+
+![](img/paper.jpg)
+
+
