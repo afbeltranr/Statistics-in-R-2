@@ -1,0 +1,251 @@
+---
+title: "Ejemplo de Estimación de incertidumbre en valoración de NaOH, empleando paquete `uLPAQ`"
+author: "Sergio A. Gonzalez Monico"
+date: "5/31/2021"
+output:           rmdformats::downcute
+---
+
+
+
+Primero cargamos los paquetes `usethis` y `devtools` para descargar los paquetes desde github.
+
+```{r}
+library(usethis)
+library(devtools)
+```
+
+Luego, usando la funcion `install_github()` pasando como argumentos la dirección del repositorio en el cual está el paquete, y `force = TRUE` para evitar problemas durante la instalación.
+
+```{r, eval = FALSE}
+install_github('https://github.com/sergmonic/AtomicWeights/',force = TRUE)
+install_github('https://github.com/sergmonic/uLPAQ/',force = TRUE)
+```
+
+Una vez instalados los paquetes, podemos agregarlos al ambiente de trabajo utilizando la función `library()`.
+
+```{r}
+library(AtomicWeights)
+library(uLPAQ)
+```
+
+Podemos acceder a las páginas de ayuda para cada una de las funciones mediante la función `help()` o `?`
+
+```{r, eval = FALSE}
+help(package="AtomicWeights")
+help(package="uLPAQ")
+```
+
+# Modelo Matematico del mesurando e identificación de fuentes de incertidumbre.
+
+* Mesurando: Concentración molar de NaOH: obtenida mediante titulación volumétrica empleando KHP y con seguimiento potenciométrico.
+
+* Fuentes:
+
+    + Masa de KHP empleada para la estandarización (`m_kHP`) en g
+    + Masa molar de KHP (`W_KHP`) en g/mol
+    + Volumen gastado de solución de NaOH (`V_NaOH`) en mL
+    + Pureza del KHP  (`P_KHP`) de forma fraccional (g/g)
+    + Repetibilidad (R) obtenida de X muestras independientes (fraccional/relativa)
+  
+   
+## Modelo matemático
+ 
+ Para el cálculo de la concentración $C_{NaOH}$ de NaOH de una solución, la cual se valora haciendo reaccionar $m_{KHP}$ g de biftalato de potasio, el cual tiene una pureza de $m_{KHP}$ con un volumen de $V_{NaOH}$ de la solución problema:
+ 
+ \begin{align}
+ 
+ C_{NaOH} = \frac{1000 \; \cdot \; m_{KHP} \; \cdot \; P_{KHP} \; \cdot \ R}{W_{KHP} \; \cdot \; V_{NaOH} }
+ \end{align}
+ 
+ Podemos crear la función que relaciona la concentración del hidróxido de sodio `C_NaOH` con el factor de conversión, utilizando la función `function()` creando como argumentos cada uno de los parámetros del factor de conversión:
+ 
+```{r}
+C_NaOH<-function(m_KHP,
+                 W_KHP,
+                 V_NaOH,
+                 P_KHP,
+                 R){
+  
+  1000*m_KHP*P_KHP*R/(W_KHP*V_NaOH)
+}
+```
+ 
+ 
+```{r, echo = F, eval = T, message = F}
+
+library(qcc)
+
+cause.and.effect(cause=list(m_KHP = '(g)',
+                            W_KHP = '(g/mol)',
+                            V_NaOH = c('material volumetrico', 'punto final'),
+                            P_KHP = '(g/g)',
+                             Repetibilidad= ''),
+                 effect = 'Incertidumbre NaOH')
+```
+
+# Incertidumbre en masas molares
+
+Fórmula molecular de KHP: $KC_8O_4H_5$
+
+```{r, eval=FALSE}
+help("getAtomicWeight")
+help("getMolarMass")
+```
+
+```{r}
+W_KHP=getMolarMass(atomsType = c("K", "C", "O", "H"),c(1,8,4,5))
+```
+
+#Incertidumbre en mediciones de volumen
+
+```{r, eval =FALSE}
+help("instVolumetrico")
+```
+
+# Volumen de NaOH gastado en la valoración
+
+### Incertidumbre en la medición de NaOH con bureta 
+
+
+
+```{r}
+PF=puntoFinal(datosAnalisis$valoracionNaOH$V,
+              datosAnalisis$valoracionNaOH$pH,
+              intervalo_x = c(10,13))
+PF
+```
+
+
+
+```{r, message = FALSE}
+bureta_NaOH <- instVolumetrico(nominal=25,
+                            subdivision =0.05 ,
+                            tipo="bureta",
+                            clase="A_AS",
+                            volumen=PF$d1num$PE,
+                            temp = 17.5)
+```
+
+### obtención de `V_NaOH` considerado material volumétrico y obtención de PF
+
+```{r}
+.V_NaOH=PF$d1num$PE
+.u_V_NaOH=sqrt(PF$d1num$u_PE^2+bureta_NaOH$u_V^2)
+V_NaOH=data.frame(V_NaOH=.V_NaOH,
+                  u_V_NaOH=.u_V_NaOH)
+V_NaOH
+```
+
+
+### Ejemplos con otros materiales
+
+
+```{r}
+balon100=instVolumetrico(nominal=100,tipo="balon",clase="A",temp=16)
+```
+
+```{r}
+pipeta10=instVolumetrico(nominal=10,tipo="pipeta",clase="A_AS",temp=16)
+```
+
+```{r}
+micropipeta=instVolumetrico(nominal=1,tipo="micropipeta",volumen=1,temp=16)
+```
+
+
+# Incertidumbre en medición de masa de KHP: mediciones gravimétricas
+
+
+```{r, eval = F}
+help(masa_minima)
+```
+
+```{r,echo=FALSE,results='hide',fig.keep='all'}
+masa_minima(u_r = 0.1,densidad = 1636,balanza = "ME204")
+```
+
+```{r}
+m_KHP=u_masa(lectura = 0.1026,densidad = 1636,balanza = "ME204")
+m_KHP$m_s
+```
+
+
+
+# Incertidumbre en la pureza del biftalato
+
+```{r, eval = FALSE}
+help("pureza")
+```
+
+
+```{r}
+P_KHP = pureza(0.999)
+P_KHP
+```
+
+# Incertidumbre por repetibilidad
+
+```{r}
+R=1
+u_R=0.0
+
+```
+
+# Estimación de la incertidumbre combinada
+
+## Coeficientes de sensibilidad
+
+```{r}
+library(Deriv)
+c_i=Deriv(C_NaOH,c("m_KHP","W_KHP","V_NaOH","P_KHP","R"))
+c_i
+```
+### Valores de los coeficientes de sensibilidad, obtenido a partir de los valores de la variables de influencia
+
+
+```{r}
+v_c_i=c_i(m_KHP$m_s$ms,W_KHP$MM,V_NaOH$V_NaOH,P_KHP$P,R)
+v_c_i
+```
+
+### vector recogiendo las incertdumbres estándar de la diferentes fuentes
+```{r}
+u_i=c(m_KHP$m_s$u_ms,W_KHP$u_MM,V_NaOH$u_V_NaOH,P_KHP$u_P,u_R)
+u_i
+```
+# Incertidumbre combinada
+
+```{r}
+u_c=sqrt(sum((v_c_i*u_i)^2))
+u_c
+```
+
+
+# Obtención de incertidumbre expandida
+```{r}
+k=2 # Se expande asumiendo una distribución normal, para una probabilidad de confianza del 95 %
+U=k*u_c
+U # Incertidumbre expandida
+```
+# Contribuciones de cada fuente
+
+```{r}
+contribuciones=(v_c_i*u_i)^2/u_c^2
+pie(contribuciones,main="Contribuciones de fuentes de incertidumbre")
+barplot(contribuciones*100,
+        xlab="Fuentes de incertidumbre",
+        ylab="Aporte a incertudumbre combinada (%)", 
+        main="Contribuciones de fuentes de incertidumbre")
+```
+
+# Valor del mensurando
+
+```{r}
+.C_NaOH=C_NaOH(m_KHP$m_s$ms,W_KHP$MM,V_NaOH$V_NaOH,P_KHP$P,R)
+```
+
+```{r}
+mensurando_C_NaOH=round(data.frame(C_NaOH=.C_NaOH,U_C_NaOH=U),5)
+mensurando_C_NaOH
+```
+

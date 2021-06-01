@@ -209,7 +209,7 @@ El efecto de la temperatura viene del coeficiente de expansión del solvente e.g
 
 función `masa_minima` 
 
-```{r}
+```{r, echo=FALSE}
 masa_minima(u_r = 0.1, 
             densidad = 8000, 
             balanza = 'XPE205')
