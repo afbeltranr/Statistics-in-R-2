@@ -355,6 +355,8 @@ df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001
 df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
 
+df3$`Masa final (g)`[c(12,32,52)] <- df3$`Masa final (g)`[c(12,32,52)] - 0.04
+
 
 knitr::kable(df3)
 write.csv(df3, 'tablaEjemplo.csv', row.names = F)
@@ -377,7 +379,8 @@ gravimetria <- filter(datos, balanza.final == 'ME204')
 volumetria <- filter(datos, Capacidad.de.la.bureta..mL. == 25)
 ```
  
- ## Analisis exploratorio
+ 
+## Analisis exploratorio
  
  Podemos realizar análisis exploratorio de datos, tal como se ha revisado en el curso a cada uno de los grupos de experimentos, antes de proceder a calcular el contenido de carbonato de calcio en la cáscara de huevo.
  
@@ -415,11 +418,13 @@ cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
 ```
 En donde:
 
-* $FD_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
-* $W_$
-*
-*
-*
+* $FD\_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
+* $W\_CaCO_3$: Es la masa molar del carbonato de calcio
+* $V\_EDTA$ es el volumen de EDTA gastado en la titulación, utilizando un material volumétrico (bureta) y un método para determinar el punto final (indicador, o mediante una curva potenciométrica)
+
+* $m\_muestra$ es la masa inicial de la muestra, medida en una balanza específica.
+* $Repetibilidad$ La repetibilidad de los experimentos expresada como la desviación de las réplicas, con un valor de 1 y un aporte a la incertidumbre de $U_R = \dfrac{s}{\sqrt{n}}$.
+
 
 ### Incertidumbre por masa molar de $CaCO_3$
 
