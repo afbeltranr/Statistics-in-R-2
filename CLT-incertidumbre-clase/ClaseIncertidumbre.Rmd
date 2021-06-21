@@ -435,11 +435,53 @@ W_CaCO3
 library(titrationCurves)
 curva <- metal_edta(conc.metal = 0.0187,eqpt = TRUE)
 colnames(curva) <- c('Volumen de EDTA (mL)', 'pCa')
-write.csv(curva, 'curvaEDTA.csv')
+write.csv(curva, 'curvaEDTA.csv', row.names = F)
 
 ```
 
+Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el punto final de la titulación, podemos cargar los datos contenidos en el archivo `curvaEDTA.csv` disponible en este [link](https://raw.githubusercontent.com/pipoelpipas/Statistics-in-R-2/main/CLT-incertidumbre-clase/curvaEDTA.csv) 
+
+Primero cargamos los datos a R:
+
+```{r}
+curvaEDTA  <- read.csv('curvaEDTA.csv', sep = ',', header = TRUE)
+```
+
+Podemos graficar la curva de titulación:
+
+```{r}
+plot(curvaEDTA$Volumen.de.EDTA..mL.,
+     curvaEDTA$pCa,
+     type = 'l',
+
+)
+```
+
+
+Luego, podemos utilizar la función `puntoFinal` del paquete `uLPAQ` para estimar la incertidumbre por la determinación del punto final a partir de esta curva:
+
+
+```{r, message = F, warning=FALSE}
+library(uLPAQ)
+PF.EDTA <- puntoFinal(curvaEDTA$Volumen.de.EDTA..mL.,
+                 curvaEDTA$pCa)
+PF
+```
+
+
 
 #### Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25mL)
+
+```{r}
+bureta_EDTA <- instVolumetrico(nominal=25,
+                            subdivision =0.05 ,
+                            tipo="bureta",
+                            clase="A_AS",
+                            volumen=PF.EDTA$d1num$PE,
+                            temp = 17.5)
+
+bureta_EDTA
+```
+ 
 
 ## Gravimetria
