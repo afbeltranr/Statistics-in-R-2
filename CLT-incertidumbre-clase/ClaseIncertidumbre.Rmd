@@ -431,10 +431,10 @@ W_CaCO3
 
 #### Incertidumbre en la medición del punto final
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.show='hide'}
 library(titrationCurves)
-curva <- metal_edta(conc.metal = 0.01,eqpt = TRUE)
-write.csv(curva, 'curva.csv', )
+curva <- metal_edta(conc.metal = 0.0187,eqpt = TRUE)
+write.csv(curva, 'curvaEDTA.csv', )
 
 ```
 
