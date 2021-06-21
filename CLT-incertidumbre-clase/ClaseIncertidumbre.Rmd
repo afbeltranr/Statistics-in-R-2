@@ -355,10 +355,90 @@ df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001
 df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
 
+
 knitr::kable(df3)
-write.csv
+write.csv(df3, 'tablaEjemplo.csv', row.names = F)
+```
+
+Podemos importar esta tabla de datos, disponible en este [enlace](https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/tablaEjemplo.csv):
+
+```{r}
+datos <- read.csv('tablaEjemplo.csv', sep = ',', header = T)
+```
+
+ Una vez tenemos cargados los datos, podemos dividirlos en grupos mas pequeños, por ejemplo un grupo de volumetría y otro de gravimetría:
+ 
+```{r message = F}
+library(dplyr)
+gravimetria <- filter(datos, balanza.final == 'ME204')
+volumetria <- filter(datos, Capacidad.de.la.bureta..mL. == 25)
+```
+ 
+ ## Analisis exploratorio
+ 
+ Podemos realizar análisis exploratorio de datos, tal como se ha revisado en el curso a cada uno de los grupos de experimentos, antes de proceder a calcular el contenido de carbonato de calcio en la cáscara de huevo.
+ 
+```{r}
+masas <- unlist(select(gravimetria, Masa.final..g.))
+volumenes <- unlist(select(volumetria, Volumen.EDTA..mL.))
+par(mfrow = c(1,2))
+boxplot(masas, main = 'boxplot de masas')
+boxplot(volumenes, main = 'boxplot de volumenes')
 ```
 
 
+## Volumetria 
+
+### Modelo Matematico del  mesurando e identificación de fuentes de incertidumbre
+
+Para el caso de la volumetria, podemos expresar el modelo de la siguiente forma:
+
+ \begin{align}
  
+\%CaCO_3 = \frac{FD_{muestra} \;\cdot\; V_{EDTA}\;\cdot\; W_{CaCO_3}\;\cdot\; R}{m_{muestra}} 
+
+ \end{align}
+
+
  
+```{r, echo = F, eval = T, message = F}
+library(qcc)
+cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
+                            W_CaCO3 = '(g/mol)',
+                            V_EDTA = c('material volumetrico', 'punto final'),
+                            m_muestra = 'balanza (g)',
+                             Repetibilidad= '1'),
+                 effect = expression(paste(' % CaCO3')))
+```
+En donde:
+
+* $FD_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen aforado en un balón volumétrico.
+*
+*
+*
+*
+
+### Incertidumbre por masa molar de $CaCO_3$
+
+```{r}
+library(AtomicWeights)
+W_CaCO3 = getMolarMass(atomsType = c('Ca','C','O'),
+                       c(1,1,3)
+                       )
+W_CaCO3
+```
+### Volumen de EDTA gastado en la valoración.
+
+#### Incertidumbre en la medición del punto final
+
+```{r, echo = FALSE}
+library(titrationCurves)
+curva <- metal_edta(conc.metal = 0.01,eqpt = TRUE)
+write.csv(curva, 'curva.csv', )
+
+```
+
+
+#### Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25mL)
+
+## Gravimetria
