@@ -362,7 +362,10 @@ write.csv(df3, 'tablaEjemplo.csv', row.names = F)
 
 Podemos importar esta tabla de datos, disponible en este [enlace](https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/tablaEjemplo.csv):
 
-```{r}
+```{r, message = F}
+library(downloader)
+url1 <- 'https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/tablaEjemplo.csv'
+download(url1, destfile = 'tablaEjemplo.csv')
 datos <- read.csv('tablaEjemplo.csv', sep = ',', header = T)
 ```
 
@@ -412,8 +415,8 @@ cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
 ```
 En donde:
 
-* $FD_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen aforado en un balón volumétrico.
-*
+* $FD_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
+* $W_$
 *
 *
 *
@@ -443,7 +446,10 @@ Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el pu
 
 Primero cargamos los datos a R:
 
-```{r}
+```{r, message = F}
+library(downloader)
+url2 <- 'https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/curvaEDTA.csv'
+download(url2, destfile = 'curvaEDTA.csv')
 curvaEDTA  <- read.csv('curvaEDTA.csv', sep = ',', header = TRUE)
 ```
 
@@ -453,7 +459,8 @@ Podemos graficar la curva de titulación:
 plot(curvaEDTA$Volumen.de.EDTA..mL.,
      curvaEDTA$pCa,
      type = 'l',
-
+     xlab = 'Volumen de EDTA (mL)',
+     ylab = 'pCa'
 )
 ```
 
@@ -485,3 +492,5 @@ bureta_EDTA
  
 
 ## Gravimetria
+
+
