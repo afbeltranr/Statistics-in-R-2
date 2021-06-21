@@ -1,11 +1,11 @@
 ---
 title: "Ejemplo de Estimación de incertidumbre en valoración de NaOH, empleando paquete `uLPAQ`"
-author: "Sergio A. Gonzalez Monico"
+author: "Sergio A. Gonzalez Monico, Andres Cabrera Orozco, Felipe Beltran"
 date: "5/31/2021"
 output:           rmdformats::downcute
 ---
 
-# Introducción
+# Instalación de paquetes
 
 Primero cargamos los paquetes `usethis` y `devtools` para descargar los paquetes desde github.
 
@@ -21,9 +21,9 @@ install_github('https://github.com/sergmonic/AtomicWeights/',force = TRUE)
 install_github('https://github.com/sergmonic/uLPAQ/',force = TRUE)
 ```
 
-Una vez instalados los paquetes, podemos agregarlos al ambiente de trabajo utilizando la función `library()`.
+Una vez instalados los paquetes, podemos agregarlos al entorno de trabajo utilizando la función `library()`.
 
-```{r}
+```{r, message=F}
 library(AtomicWeights)
 library(uLPAQ)
 ```
@@ -35,7 +35,56 @@ help(package="AtomicWeights")
 help(package="uLPAQ")
 ```
 
+# Procedimiento para la evaluación y estimación según la  [GUM](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
+
+1. Identificar el mesurando
+
+2. Identificar las fuentes de incertidumbre y la posible existencia de fuentes dominantes.
+
+3. Clasificar las fuentes de incertidumbre en tipo A o tipo B.
+
+4. Expresar la relación matemática entre el mesurando $Y$ y las variables de entrada $X_i$ de las cuales depende:
+
+\begin{align}
+
+Y = f(X_1, X_2, ..., x_n) 
+\end{align}
+
+
+Esta expresión debe contener cada cantidad que puede contribuir en la incertidumbre del resultado de la medición.
+
+5. Estimar las incertidumbres asociadas a cada funte de error (contribuciones). Convertir a incertidumbres estándar.
+
+ 
+
+6. Combinar las incertidumbres para obtener la **incertidumbre combinada**.
+
+   Para sumas: \textit{U combinada}
+        
+     \begin{align}
+    y = a + b, y = a - b
+    \end{align}
+    \begin{align}
+    u_y = \sqrt{u^2_a + u^2_b}
+    \end{align}
+    Para Multiplicaciones: \textit{U combinada relativa}
+        
+     \begin{align}
+    y = ab, y = a/b
+    \end{align}
+    \begin{align}
+    u_y/y = \sqrt{(u_a/a)^2 + (u_b/b)^2}
+    \end{align}
+    
+
+7. Calcular La **Incertidumbre expandida (U)** utilizando un factor de cubrimiento (k)
+
+\begin{align}
+U = ku
+\end{align}
+ 
 # Modelo Matematico del mesurando e identificación de fuentes de incertidumbre.
+
 
 * Mesurando: Concentración molar de NaOH: obtenida mediante titulación volumétrica empleando KHP y con seguimiento potenciométrico.
 
@@ -72,9 +121,7 @@ C_NaOH<-function(m_KHP,
  
  
 ```{r, echo = F, eval = T, message = F}
-
 library(qcc)
-
 cause.and.effect(cause=list(m_KHP = '(g)',
                             W_KHP = '(g/mol)',
                             V_NaOH = c('material volumetrico', 'punto final'),
@@ -104,7 +151,7 @@ help("instVolumetrico")
 
 # Volumen de NaOH gastado en la valoración
 
-### Incertidumbre en la medición de NaOH con bureta 
+## Incertidumbre en la medición de NaOH con bureta 
 
 
 
@@ -117,6 +164,9 @@ PF
 
 
 
+## Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25 mL).
+
+
 ```{r, message = FALSE}
 bureta_NaOH <- instVolumetrico(nominal=25,
                             subdivision =0.05 ,
@@ -126,7 +176,7 @@ bureta_NaOH <- instVolumetrico(nominal=25,
                             temp = 17.5)
 ```
 
-### obtención de `V_NaOH` considerado material volumétrico y obtención de PF
+## obtención de `V_NaOH` considerado material volumétrico y obtención de PF
 
 ```{r}
 .V_NaOH=PF$d1num$PE
@@ -188,7 +238,6 @@ P_KHP
 ```{r}
 R=1
 u_R=0.0
-
 ```
 
 # Estimación de la incertidumbre combinada
@@ -249,3 +298,67 @@ mensurando_C_NaOH=round(data.frame(C_NaOH=.C_NaOH,U_C_NaOH=U),5)
 mensurando_C_NaOH
 ```
 
+
+
+
+# Ejemplo con datos reales.
+
+
+Para este ejemplo se utilizaran los datos resultantes de valoraciones repetidas de una muestra de cascara de huevo. Para determinar el porcentaje de carbonato de calcio $(CaCO_3)$ se determinó el contenido de calcio por gravimetría y por volumetría. En total, 20 grupos de laboratorio determinaron el contenido de calcio, mediante distintas metodologias de la siguiente manera:
+
+
+* los grupos del 1 al 10 tomaron 100 mg de la muestra en la balanza `ME204`
+* los grupos del 11 al 20 grupos tomaron 200 mg de la muestra en la balanza `AES220`
+
+Cada muestra se llevó a volumen en balones tipo A de 50mL (1 a 10) y 100 mL (11 a 20) 
+
+Luego de esto, se tomaron alicuotas de la siguiente manera:
+
+* todos los grupos tomaron alicuota de 10 mL en una pipeta tipo A.
+
+<!-- * De los grupos 6 al 10 tomaron una alicuota de 10 mL (pipeta tipo A) -->
+
+<!-- * De los grupos 11 al 15 tomaron alicuota de 10 g en la balanza `ME204` -->
+<!-- * De los grupos 16 al 20 tomaron una alicuota de 10 mL (pipeta tipo B). -->
+
+Luego se llevó a cabo la valoración de cada una de las alícuotas de la siguiente manera:
+
+* Las muestras 1 a 10 se llevaron a pH 10 y se titularon con EDTA 0.1 M en una bureta de 25 mL tipo A
+
+* Las muestras 11 a 20 precipitaron con oxalato de amonio, filtraron, secaron, calcinaron a 1000 ºC y se pesaron en la balanza `ME204`.
+
+Un resumen de las variables de procedimiento y los resultados experimentales se encuentran en la siguiente tabla: 
+
+```{r echo = F}
+masa.inicial <- c(rep(0.500,10),rep(1.000,10))
+balanza.inicial <- c(rep('ME204',10),rep('AES220',10))
+alicuota <- rep(10, 20)
+clase.pipeta <- rep('A')
+capacidad.bureta <- c(rep(25,10),rep(NA,10))
+balanza.calcinacion <- c(rep(NA,10),rep('ME204',10))
+set.seed(1234)
+vol.EDTA <- c(round(rnorm(10,9.35,0.15),2), rep(NA,10))
+masa.calcin <- c(rep(NA,10),round( rnorm(10,0.0525,0.001),4))
+
+df1 <- data.frame(masa.inicial = masa.inicial, balanza.inicial = balanza.inicial, alicuota= alicuota, clase.pipeta = clase.pipeta, capacidad.bureta = capacidad.bureta, balanza.calcinacion = balanza.calcinacion,
+                 vol.EDTA = vol.EDTA, masa.calcin=masa.calcin)
+
+colnames(df1) <- c('Masa muestra (g)','balanza inicial', 'Alícuota (mL)', 'Clase pipeta alícuota', 'Capacidad de la bureta (mL)', 'balanza final', 'Volumen EDTA (mL)', 'Masa final (g)')
+
+df3 <- rbind(df1,df1,df1)
+df3$replica <- c(rep(1,20),rep(2,20),rep(3,20))
+df3$`Volumen EDTA (mL)`[21:30] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 0.15)
+df3$`Volumen EDTA (mL)`[41:50] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 0.15)
+df3$`Volumen EDTA (mL)` <- round(df3$`Volumen EDTA (mL)`,2)
+
+df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
+df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
+df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
+
+knitr::kable(df3)
+write.csv
+```
+
+
+ 
+ 
