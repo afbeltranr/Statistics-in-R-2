@@ -434,7 +434,8 @@ W_CaCO3
 ```{r, echo = FALSE, fig.show='hide'}
 library(titrationCurves)
 curva <- metal_edta(conc.metal = 0.0187,eqpt = TRUE)
-write.csv(curva, 'curvaEDTA.csv', )
+colnames(curva) <- c('Volumen de EDTA (mL)', 'pCa')
+write.csv(curva, 'curvaEDTA.csv')
 
 ```
 
