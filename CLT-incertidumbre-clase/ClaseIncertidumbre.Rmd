@@ -14,7 +14,7 @@ library(usethis)
 library(devtools)
 ```
 
-Luego, usando la funcion `install_github()` pasando como argumentos la dirección del repositorio en el cual está el paquete, y `force = TRUE` para evitar problemas durante la instalación.
+Luego, usando la funcion `install_github()` pasando como arentos la dirección del repositorio en el cual está el paquete, y `force = TRUE` para evitar problemas durante la instalación.
 
 ```{r, eval = FALSE}
 install_github('https://github.com/sergmonic/AtomicWeights/',force = TRUE)
@@ -35,7 +35,7 @@ help(package="AtomicWeights")
 help(package="uLPAQ")
 ```
 
-# Procedimiento para la evaluación y estimación según la  [GUM](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
+# Procedimiento para la evaluación y estimación según la  [](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
 
 1. Identificar el mesurando
 
@@ -310,11 +310,11 @@ Para este ejemplo se utilizaran los datos resultantes de valoraciones repetidas 
 * los grupos del 1 al 10 tomaron 100 mg de la muestra en la balanza `ME204`
 * los grupos del 11 al 20 grupos tomaron 200 mg de la muestra en la balanza `AES220`
 
-Cada muestra se llevó a volumen en balones tipo A de 50mL (1 a 10) y 100 mL (11 a 20) 
+Cada muestra se llevó a volumen en balones tipo A de 50mL.
 
 Luego de esto, se tomaron alicuotas de la siguiente manera:
 
-* todos los grupos tomaron alicuota de 10 mL en una pipeta tipo A.
+* Todos los grupos tomaron alicuota de 10 mL en una pipeta tipo A.
 
 <!-- * De los grupos 6 al 10 tomaron una alicuota de 10 mL (pipeta tipo A) -->
 
@@ -357,7 +357,7 @@ W_CaCO3 = getMolarMass(atomsType = c('Ca','C','O'),
 vol.EDTA <- c(round(
                     rnorm(10,
                           (masa.inicial[1]*93.6*1000*10)/(100*W_CaCO3$MM*0.1*50),
-                          0.15),
+                          0.5),
                     2), 
               
               rep(NA,10))
@@ -418,15 +418,79 @@ volumetria <- filter(datos, Capacidad.de.la.bureta..mL. == 25)
 ```{r}
 masas <- unlist(select(gravimetria, Masa.final..g.))
 volumenes <- unlist(select(volumetria, Volumen.EDTA..mL.))
-
+par(mfrow = c(2,2))
 boxplot(masas, main = 'boxplot de masas')
 hist(masas)
 boxplot(volumenes, main = 'boxplot de volumenes')
-masas
+hist(volumenes)
 ```
 
+En este análisis gráfico exploratorio, podemos ver que la distribución de las masas para las titulaciones gravimétricas de aleja de la normalidad debido a datos atípicos, podemos preguntarle a R cuales son, primero calculando el valor crítico inferior:
 
-## Volumetria 
+```{r}
+summary(masas)
+cuartiles <- quantile(masas)
+cuartiles
+IQR <- cuartiles[4]-cuartiles[2]
+critico.inferior<- cuartiles[2]-(1.5*IQR)
+which(masas < critico.inferior)
+```
+Ahora sabemos que las masas del grupo 12 (el segundo de gravimetría) son datos atípicos, así que podemos rechazarlos. para extraer de nuestro set de datos estos resultados podemos usar el siguiente código:
+
+```{r}
+gravimetria <- gravimetria[-c(2,12,22),]
+
+```
+
+Ahora podemos volver a evaluar las distribuciones empíricas de los experimentos:
+
+```{r}
+masas <- unlist(select(gravimetria, Masa.final..g.))
+par(mfrow = c(2,2))
+boxplot(masas, main = 'boxplot de masas')
+hist(masas)
+boxplot(volumenes, main = 'boxplot de volumenes')
+hist(volumenes)
+```
+Ahora podemos ver que no hay datos atípicos sesgando la distribución de los resultados experimentales.
+
+Una vez realizamos este análisis exploratorio, podemos proceder a calcular los promedios de las réplicas y sus respectivas desviaciones estándar (Éstas serán útiles para la incertidumbre dada por repetibilidad para cada experimento)
+
+* Para las volumetrias:
+
+```{r}
+volumenes1 <- filter(volumetria, replica ==1) %>% select(Volumen.EDTA..mL.)%>% unlist()
+volumenes2 <- filter(volumetria, replica ==2) %>% select(Volumen.EDTA..mL.)%>% unlist()
+volumenes3 <- filter(volumetria, replica ==3) %>% select(Volumen.EDTA..mL.)%>% unlist()
+
+volumenes.promedio <- (volumenes1+volumenes2+volumenes3)/3
+sd.volumen <- vector('numeric',10)
+for(i in 1:10){
+  
+  sd.volumen[i] <- sd(c(volumenes1[i],volumenes2[i],volumenes3[i]))
+}
+sd.volumen
+```
+
+* Para las gravimetrías:
+
+```{r}
+ masas1 <- filter(gravimetria, replica ==1) %>% select(Masa.final..g.)%>% unlist()
+ masas2 <- filter(gravimetria, replica ==2) %>% select(Masa.final..g.)%>% unlist()
+ masas3 <- filter(gravimetria, replica ==3) %>% select(Masa.final..g.)%>% unlist()
+
+masas.promedio <- (masas1+masas2+masas3)/3
+sd.masa <- vector('numeric',10)
+for(i in 1:10){
+  
+  sd.masa[i] <- sd(c(masas1[i],masas2[i],masas3[i]))
+}
+sd.masa
+```
+Una vez tenemos separados nuestros datos, podemos proceder a estimar la incertidumbre teniendo encuenta los pasos recomendados por la [GUM](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
+
+
+## Volumetría 
 
 ### Modelo Matematico del  mesurando e identificación de fuentes de incertidumbre
 
@@ -437,7 +501,23 @@ Para el caso de la volumetria, podemos expresar el modelo de la siguiente forma:
 \%CaCO_3 = \frac{0.1 \;\cdot\; FD_{muestra} \;\cdot\; V_{EDTA}\;\cdot\; W_{CaCO_3}\;\cdot\;C_{EDTA} \;\cdot\;R}{m_{muestra}} 
 
  \end{align}
+ 
+ Podemos entonces crear esta función en `R`:
+ 
+```{r}
+CaCO3_p.p <- function(FD,
+                      V_EDTA,
+                      W_CaCO3,
+                      C_EDTA,
+                      R,
+                      m_muestra){
+  
+  (0.1*FD*V_EDTA*W_CaCO3*C_EDTA*R)/(m_muestra)
+  
+                      }
 
+```
+ 
 
  
 ```{r, echo = F, eval = T, message = F}
@@ -461,7 +541,7 @@ En donde:
 * $Repetibilidad:$ La repetibilidad de los experimentos expresada como la desviación de las réplicas, con un valor de 1 y un aporte a la incertidumbre de $U_R = \dfrac{s}{\sqrt{n}}$.
 
 
-### Incertidumbre por masa molar de $CaCO_3$
+### Incertidumbre por masa molar de $CaCO_3$:
 
 ```{r}
 library(AtomicWeights)
@@ -474,34 +554,57 @@ W_CaCO3
 
 #### Incertidumbre en la medición del punto final
 
+En este caso, tenemos dos variaciones, en el laboratorio solo había un electrodo de ion selectivo para calcio, entonces solo el primer grupo pudo hacer la determinación mediante titulación potenciométrica por triplicado.
+
+El resto de grupos, realizaron la determinación del punto final mediante indicador, como se muestra en la siguiente imagen:
+
+![](img/titration.jpg)
+
+Entonces, podemos:
+
+* Determinar los puntos finales con su respectiva incertidumbre para las replicas del primer grupo
+* Dados los puntos finales de los resultados de potenciometría, calcular la incertidumbre dada por la bureta.
+
+
+
 ```{r, echo = FALSE, fig.show='hide'}
 library(titrationCurves)
-curva <- metal_edta(conc.metal = 0.0187,eqpt = TRUE)
-colnames(curva) <- c('Volumen de EDTA (mL)', 'pCa')
-write.csv(curva, 'curvaEDTA.csv', row.names = F)
+curva1 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[1]*0.1/50,eqpt = TRUE)
+curva2 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[21]*0.1/50,eqpt = TRUE)
+curva3 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[41]*0.1/50,eqpt = TRUE)
+curva3 <- curva3[-c(661),]
+curvas <- cbind(curva1,curva2[,2],curva3[,2])
+colnames(curvas) <- c('Volumen de EDTA (mL)', 'pCa-1','pCa-2','pCa-3')
+write.csv(curvas, 'curvasEDTA.csv', row.names = F)
 
 ```
 
-Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el punto final de la titulación, podemos cargar los datos contenidos en el archivo `curvaEDTA.csv` disponible en este [link](https://raw.githubusercontent.com/pipoelpipas/Statistics-in-R-2/main/CLT-incertidumbre-clase/curvaEDTA.csv) 
+Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el punto final de la titulación, podemos cargar los datos contenidos en el archivo `curvaEDTA.csv` disponible en este [link](https://raw.githubusercontent.com/pipoelpipas/Statistics-in-R-2/main/CLT-incertidumbre-clase/curvasEDTA.csv) 
 
 Primero cargamos los datos a R:
 
 ```{r, message = F}
 library(downloader)
-url2 <- 'https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/curvaEDTA.csv'
-download(url2, destfile = 'curvaEDTA.csv')
-curvaEDTA  <- read.csv('curvaEDTA.csv', sep = ',', header = TRUE)
+url2 <- 'https://github.com/pipoelpipas/Statistics-in-R-2/raw/main/CLT-incertidumbre-clase/curvasEDTA.csv'
+download(url2, destfile = 'curvasEDTA.csv')
+curvasEDTA  <- read.csv('curvasEDTA.csv', sep = ',', header = TRUE)
 ```
 
 Podemos graficar la curva de titulación:
 
 ```{r}
-plot(curvaEDTA$Volumen.de.EDTA..mL.,
-     curvaEDTA$pCa,
+
+for(i in 2:4){
+ plot(curvasEDTA$Volumen.de.EDTA..mL.,
+     curvasEDTA[,i],
      type = 'l',
      xlab = 'Volumen de EDTA (mL)',
-     ylab = 'pCa'
-)
+     ylab = 'pCa',
+     xlim = c(5,10)
+) 
+ par(new =F) 
+}
+
 ```
 
 
@@ -509,10 +612,10 @@ Luego, podemos utilizar la función `puntoFinal` del paquete `uLPAQ` para estima
 
 
 ```{r, message = F, warning=FALSE}
-library(uLPAQ)
-PF.EDTA <- puntoFinal(curvaEDTA$Volumen.de.EDTA..mL.,
-                 curvaEDTA$pCa)
-PF
+ # library(uLPAQ)
+# PF.EDTA <- puntoFinal(curvaEDTA$Volumen.de.EDTA..mL.,
+#                  curvaEDTA$pCa)
+# PF
 ```
 
 
@@ -520,14 +623,15 @@ PF
 #### Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25mL)
 
 ```{r}
-bureta_EDTA <- instVolumetrico(nominal=25,
-                            subdivision =0.05 ,
-                            tipo="bureta",
-                            clase="A_AS",
-                            volumen=PF.EDTA$d1num$PE,
-                            temp = 17.5)
-
-bureta_EDTA
+# library(uLPAQ)
+# bureta_EDTA <- instVolumetrico(nominal=25,
+#                             subdivision =0.05 ,
+#                             tipo="bureta",
+#                             temp = 17.5,
+#                             clase="A_AS",
+#                             volumen=PF.EDTA$d1nu)
+# 
+# bureta_EDTA
 ```
  
 
