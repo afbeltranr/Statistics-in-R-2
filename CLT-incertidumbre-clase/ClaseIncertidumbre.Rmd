@@ -565,6 +565,9 @@ Entonces, podemos:
 * Determinar los puntos finales con su respectiva incertidumbre para las replicas del primer grupo
 * Dados los puntos finales de los resultados de potenciometría, calcular la incertidumbre dada por la bureta.
 
+* Una vez tengamos estos valores, podemos hallar las incertidumbres de los puntos determinados con indicador, tal como se ha reportado en [literatura.](https://revistas.unal.edu.co/index.php/rcolquim/article/view/72401/70042) 
+
+
 
 
 ```{r, echo = FALSE, fig.show='hide'}
@@ -579,7 +582,7 @@ write.csv(curvas, 'curvasEDTA.csv', row.names = F)
 
 ```
 
-Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el punto final de la titulación, podemos cargar los datos contenidos en el archivo `curvaEDTA.csv` disponible en este [link](https://raw.githubusercontent.com/pipoelpipas/Statistics-in-R-2/main/CLT-incertidumbre-clase/curvasEDTA.csv) 
+Para ilustrar de nuevo el caso de la determinación de la incertidumbre en el punto final de la titulación, podemos cargar los datos contenidos en el archivo `curvasEDTA.csv` disponible en este [link](https://raw.githubusercontent.com/pipoelpipas/Statistics-in-R-2/main/CLT-incertidumbre-clase/curvasEDTA.csv) 
 
 Primero cargamos los datos a R:
 
@@ -590,7 +593,7 @@ download(url2, destfile = 'curvasEDTA.csv')
 curvasEDTA  <- read.csv('curvasEDTA.csv', sep = ',', header = TRUE)
 ```
 
-Podemos graficar la curva de titulación:
+Podemos graficar las curvas de titulación:
 
 ```{r}
 
@@ -600,9 +603,10 @@ for(i in 2:4){
      type = 'l',
      xlab = 'Volumen de EDTA (mL)',
      ylab = 'pCa',
-     xlim = c(5,10)
+     xlim = c(5,10),
+     col = c(1,2,3)
 ) 
- par(new =F) 
+ par(new =T) 
 }
 
 ```
@@ -612,10 +616,15 @@ Luego, podemos utilizar la función `puntoFinal` del paquete `uLPAQ` para estima
 
 
 ```{r, message = F, warning=FALSE}
- # library(uLPAQ)
-# PF.EDTA <- puntoFinal(curvaEDTA$Volumen.de.EDTA..mL.,
-#                  curvaEDTA$pCa)
-# PF
+  library(uLPAQ)
+puntos.finales <- list(3)
+
+for(i in 1:3){
+  puntos.finales[i] <- puntoFinal(curvasEDTA$Volumen.de.EDTA..mL.,
+                  curvasEDTA[,i+1])
+  
+}
+
 ```
 
 
