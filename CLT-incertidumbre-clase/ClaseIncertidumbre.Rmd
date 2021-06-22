@@ -323,22 +323,53 @@ Luego de esto, se tomaron alicuotas de la siguiente manera:
 
 Luego se llevó a cabo la valoración de cada una de las alícuotas de la siguiente manera:
 
-* Las muestras 1 a 10 se llevaron a pH 10 y se titularon con EDTA 0.1 M en una bureta de 25 mL tipo A
+* Las muestras 1 a 10 se llevaron a pH 10 y se titularon con EDTA 0.100 $\pm$ 0.001 M (k=2) en una bureta de 25 $\pm$ 0.05 mL tipo A
 
 * Las muestras 11 a 20 precipitaron con oxalato de amonio, filtraron, secaron, calcinaron a 1000 ºC y se pesaron en la balanza `ME204`.
 
 Un resumen de las variables de procedimiento y los resultados experimentales se encuentran en la siguiente tabla: 
 
 ```{r echo = F}
-masa.inicial <- c(rep(0.500,10),rep(1.000,10))
-balanza.inicial <- c(rep('ME204',10),rep('AES220',10))
-alicuota <- rep(10, 20)
-clase.pipeta <- rep('A')
-capacidad.bureta <- c(rep(25,10),rep(NA,10))
-balanza.calcinacion <- c(rep(NA,10),rep('ME204',10))
+masa.inicial <- c(rep(0.500,10),
+                  rep(2.500,10)
+                  )
+balanza.inicial <- c(rep('ME204',10),
+                     rep('AES220',10)
+                     )
+alicuota <- rep(10, 
+                20
+                )
+clase.pipeta <- rep('A'
+                    ,20)
+capacidad.bureta <- c(rep(25,10),
+                      rep(NA,10))
+balanza.calcinacion <- c(rep(NA,10),
+                         rep('ME204',10))
+
 set.seed(1234)
-vol.EDTA <- c(round(rnorm(10,9.35,0.15),2), rep(NA,10))
-masa.calcin <- c(rep(NA,10),round( rnorm(10,0.0525,0.001),4))
+
+library(AtomicWeights)
+
+W_CaCO3 = getMolarMass(atomsType = c('Ca','C','O'),
+                       c(1,1,3)
+                       )
+
+vol.EDTA <- c(round(
+                    rnorm(10,
+                          (masa.inicial[1]*93.6*1000*10)/(100*W_CaCO3$MM*0.1*50),
+                          0.15),
+                    2), 
+              
+              rep(NA,10))
+
+W_CaO = getMolarMass(atomsType = c('Ca','O'),
+                       c(1,1)
+                       )
+masa.calcin <- c(rep(NA,10),
+                 round( rnorm(10,
+                             (masa.inicial[11]*93.6*10*W_CaO$MM)/(100*100.09*50),
+                              0.001),4)
+                 )
 
 df1 <- data.frame(masa.inicial = masa.inicial, balanza.inicial = balanza.inicial, alicuota= alicuota, clase.pipeta = clase.pipeta, capacidad.bureta = capacidad.bureta, balanza.calcinacion = balanza.calcinacion,
                  vol.EDTA = vol.EDTA, masa.calcin=masa.calcin)
@@ -355,7 +386,7 @@ df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001
 df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
 
-df3$`Masa final (g)`[c(12,32,52)] <- df3$`Masa final (g)`[c(12,32,52)] - 0.04
+df3$`Masa final (g)`[c(12,32,52)] <- df3$`Masa final (g)`[c(12,32,52)] - 0.1
 
 
 knitr::kable(df3)
@@ -387,9 +418,11 @@ volumetria <- filter(datos, Capacidad.de.la.bureta..mL. == 25)
 ```{r}
 masas <- unlist(select(gravimetria, Masa.final..g.))
 volumenes <- unlist(select(volumetria, Volumen.EDTA..mL.))
-par(mfrow = c(1,2))
+
 boxplot(masas, main = 'boxplot de masas')
+hist(masas)
 boxplot(volumenes, main = 'boxplot de volumenes')
+masas
 ```
 
 
@@ -401,7 +434,7 @@ Para el caso de la volumetria, podemos expresar el modelo de la siguiente forma:
 
  \begin{align}
  
-\%CaCO_3 = \frac{FD_{muestra} \;\cdot\; V_{EDTA}\;\cdot\; W_{CaCO_3}\;\cdot\; R}{m_{muestra}} 
+\%CaCO_3 = \frac{0.1 \;\cdot\; FD_{muestra} \;\cdot\; V_{EDTA}\;\cdot\; W_{CaCO_3}\;\cdot\;C_{EDTA} \;\cdot\;R}{m_{muestra}} 
 
  \end{align}
 
@@ -413,24 +446,26 @@ cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
                             W_CaCO3 = '(g/mol)',
                             V_EDTA = c('material volumetrico', 'punto final'),
                             m_muestra = 'balanza (g)',
-                             Repetibilidad= '1'),
+                             Repetibilidad= '1',
+                            C_EDTA = 'mol/L'),
                  effect = expression(paste(' % CaCO3')))
 ```
 En donde:
 
-* $FD\_{muestra}$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
-* $W\_CaCO_3$: Es la masa molar del carbonato de calcio
-* $V\_EDTA$ es el volumen de EDTA gastado en la titulación, utilizando un material volumétrico (bureta) y un método para determinar el punto final (indicador, o mediante una curva potenciométrica)
+* $FD\_{muestra}:$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
+* $W\_CaCO_3:$ Es la masa molar del carbonato de calcio
+* $V\_EDTA:$ es el volumen de EDTA gastado en la titulación, utilizando un material volumétrico (bureta) y un método para determinar el punto final (indicador, o mediante una curva potenciométrica)
 
-* $m\_muestra$ es la masa inicial de la muestra, medida en una balanza específica.
-* $Repetibilidad$ La repetibilidad de los experimentos expresada como la desviación de las réplicas, con un valor de 1 y un aporte a la incertidumbre de $U_R = \dfrac{s}{\sqrt{n}}$.
+* $C_{EDTA}:$ La concentración de la solución de EDTA valorada con una incertidumbre expandida de 0.001 M (k = 2)
+* $m\_muestra:$ es la masa inicial de la muestra, medida en una balanza específica.
+* $Repetibilidad:$ La repetibilidad de los experimentos expresada como la desviación de las réplicas, con un valor de 1 y un aporte a la incertidumbre de $U_R = \dfrac{s}{\sqrt{n}}$.
 
 
 ### Incertidumbre por masa molar de $CaCO_3$
 
 ```{r}
 library(AtomicWeights)
-W_CaCO3 = getMolarMass(atomsType = c('Ca','C','O'),
+W_CaCO3 <- getMolarMass(atomsType = c('Ca','C','O'),
                        c(1,1,3)
                        )
 W_CaCO3
