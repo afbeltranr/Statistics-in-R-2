@@ -1,5 +1,6 @@
 ---
-title: "Ejemplo de Estimación de incertidumbre en valoración de NaOH, empleando paquete `uLPAQ`"
+title: 
+ 'Ejemplo de Estimación de incertidumbre en valoración de NaOH, empleando paquete `uLPAQ`'
 author: "Sergio A. Gonzalez Monico, Andres Cabrera Orozco, Felipe Beltran"
 date: "5/31/2021"
 output:           rmdformats::downcute
@@ -35,7 +36,7 @@ help(package="AtomicWeights")
 help(package="uLPAQ")
 ```
 
-# Procedimiento para la evaluación y estimación según la  [](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
+# Procedimiento para la evaluación y estimación según la  [GUM](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
 
 1. Identificar el mesurando
 
@@ -96,7 +97,25 @@ U = ku
     + Pureza del KHP  (`P_KHP`) de forma fraccional (g/g)
     + Repetibilidad (R) obtenida de X muestras independientes (fraccional/relativa)
   
-   
+Para relacionar las fuentes de incertidumbre con la incertidumbre del mesurando, podemos dibujar un diagrama Ishikawa de causa y efecto, o espina de pescado.
+
+Para construir este diagrama en `R`, podemos utilizar la función `cause.and.effect` del paquete `qcc`:
+
+
+
+```{r message = F}
+library(qcc)
+cause.and.effect(cause=list(m_KHP = '(g)',
+                            W_KHP = '(g/mol)',
+                            V_NaOH = c('material volumetrico', 
+                                           'punto final'),
+                            P_KHP = '(g/g)',
+                             Repetibilidad= ''),
+                 effect = 'Incertidumbre NaOH')
+```
+
+
+
 ## Modelo matemático
  
  Para el cálculo de la concentración $C_{NaOH}$ de NaOH de una solución, la cual se valora haciendo reaccionar $m_{KHP}$ g de biftalato de potasio, el cual tiene una pureza de $m_{KHP}$ con un volumen de $V_{NaOH}$ de la solución problema:
@@ -105,6 +124,7 @@ U = ku
  
  C_{NaOH} = \frac{1000 \; \cdot \; m_{KHP} \; \cdot \; P_{KHP} \; \cdot \ R}{W_{KHP} \; \cdot \; V_{NaOH} }
  \end{align}
+ 
  
  Podemos crear la función que relaciona la concentración del hidróxido de sodio `C_NaOH` con el factor de conversión, utilizando la función `function()` creando como argumentos cada uno de los parámetros del factor de conversión:
  
@@ -119,20 +139,15 @@ C_NaOH<-function(m_KHP,
 }
 ```
  
- 
-```{r, echo = F, eval = T, message = F}
-library(qcc)
-cause.and.effect(cause=list(m_KHP = '(g)',
-                            W_KHP = '(g/mol)',
-                            V_NaOH = c('material volumetrico', 'punto final'),
-                            P_KHP = '(g/g)',
-                             Repetibilidad= ''),
-                 effect = 'Incertidumbre NaOH')
-```
+
 
 # Incertidumbre en masas molares
 
 Fórmula molecular de KHP: $KC_8O_4H_5$
+
+Para determinar la masa molar de un compuesto, y la incertidumbre asociada a esta masa molar, podemos utilizar las funciones `getAtomicWeight` y `getMolarMass`, disponibles en el paquete `AtomicWeights`.
+
+Para revisar más información sobre dichas funciones, podemos revisar las siguientes páginas de ayuda:
 
 ```{r, eval=FALSE}
 help("getAtomicWeight")
@@ -140,19 +155,33 @@ help("getMolarMass")
 ```
 
 ```{r}
-W_KHP=getMolarMass(atomsType = c("K", "C", "O", "H"),c(1,8,4,5))
+W_KHP=getMolarMass(atomsType = c("K", "C", "O", "H"),
+                   c(1,8,4,5))
 ```
 
-#Incertidumbre en mediciones de volumen
+
+
+# Volumen de NaOH gastado en la valoración
+
+## Incertidumbre en mediciones de volumen
+
+Para las mediciones de volumen en material volumétrico de vidrio, podemos utilizar la función `instVolumetrico`. Para acceder a la página de ayuda de esta función podemos ejecutar el siguiente comando:
 
 ```{r, eval =FALSE}
 help("instVolumetrico")
 ```
 
-# Volumen de NaOH gastado en la valoración
+## Incertidumbre la determinación del punto final de la titulación (volumen de equivalencia)
 
-## Incertidumbre en la medición de NaOH con bureta 
+Para determinar la incertidumbre en la determinación del punto final de la titulación, e.g. en una valoración potenciométrica con electrodo de pH, el punto de inflexión en la curva pH vs volumen de agente titulante, podemos utilizar la función `puntoFinal` del paquete `uLPAQ`. 
 
+Esta función determina el punto final mediante tres algoritmos distintos, y devuelve una lista con tres tablas, o `data.frame`. Cada una correspondiente a un algoritmo de determinación del punto de inflexión:
+
+1. `d1num` contiene el resultado en $x$ (volumen de titulante) determinado como el máximo de la primera derivada numérica hacia [adelante](https://en.wikipedia.org/wiki/Finite_difference)
+
+2. `rLog` contiene el resultado del punto de inflexión empleando el modelo de regresión logística disponible en el paquete [`nplr`](https://cran.r-project.org/web/packages/nplr/vignettes/nplr.pdf)
+
+3. `ede` contiene el punto final de la titulacion estimado mediante el estimador de distancia máxima, disponible en el paquete [`inflection`](https://cran.r-project.org/web/packages/inflection/vignettes/inflection.html)
 
 
 ```{r}
@@ -166,6 +195,7 @@ PF
 
 ## Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25 mL).
 
+para determinar la incertidumbre por medir el volumen determinado con la función de `puntoFinal` en una bureta, podemos utilizar la función `instVolumetrico`, como se muestra a continuación:
 
 ```{r, message = FALSE}
 bureta_NaOH <- instVolumetrico(nominal=25,
@@ -176,7 +206,19 @@ bureta_NaOH <- instVolumetrico(nominal=25,
                             temp = 17.5)
 ```
 
-## obtención de `V_NaOH` considerado material volumétrico y obtención de PF
+## obtención de `V_NaOH` considerando material volumétrico y obtención de PF
+
+Una vez tenemos el aporte a la incertidumbre por las dos fuentes para el volumen de titulante gastado en la valoración:
+
+* Incertidumbre asociada a la determinación del punto final, contenida en  `PF$d1num$u_PE`
+
+* Incertidumbre asociada a el uso de material volumetrico contenida en `bureta_NaOH$u_V`.
+
+Ahora podemos calcular la incertidumbre asociada al volumen como incertidumbre combinada de las dos fuentes principales, punto final y medición en bureta.
+
+\begin{align}
+u_{V_{NaOH}} = \sqrt{u_{PF}^2 + u_{bureta}^2}
+\end{align}
 
 ```{r}
 .V_NaOH=PF$d1num$PE
@@ -187,41 +229,91 @@ V_NaOH
 ```
 
 
-### Ejemplos con otros materiales
+### Ejemplos con otros tipos de material volumétrico
+
+Si se llega a dar el caso en el que en el procedimiento experimental se utilizan otros tipos de material de vidrio para realizar mediciones de volumen, podemos utilizar la función  `instVolumetrico`. A continuación algunos ejemplos.
 
 
 ```{r}
-balon100=instVolumetrico(nominal=100,tipo="balon",clase="A",temp=16)
+balon100 <- instVolumetrico(nominal=100,
+                         tipo="balon",
+                         clase="A",
+                         temp=16)
 ```
 
 ```{r}
-pipeta10=instVolumetrico(nominal=10,tipo="pipeta",clase="A_AS",temp=16)
+pipeta10 <- instVolumetrico(nominal=10,
+                         tipo="pipeta",
+                         clase="A_AS",
+                         temp=16)
 ```
 
 ```{r}
-micropipeta=instVolumetrico(nominal=1,tipo="micropipeta",volumen=1,temp=16)
+micropipeta <- instVolumetrico(nominal=1,
+                            tipo="micropipeta",
+                            volumen=1,
+                            temp=16)
 ```
 
 
 # Incertidumbre en medición de masa de KHP: mediciones gravimétricas
 
+Dentro del paquete `uLPAQ` tenemos disponibles las funciones `u_masa` y `masa_minima` relacionadas con el uso de balanzas analíticas. 
 
+* `masa_minima` nos sirve para determinar cual es la mínima cantidad de masa que podemos pesar en una balanza con determinadas propiedades para cumplir con la condición de un valor máximo de incertidumbre relativa. 
+
+* `u_masa` nos sirve para determinar la incertidumbre asociada a medir la masa de un sólido que tiene una densidad asociada, y usando una balanza analítica con propiedades determinadas.
+
+Las balanzas que se pueden utilizar en este paquete, se encuentran en la tabla `balanzasLPAQ` dentro del paquete `uLPAQ`:
+
+```{r echo = F}
+data("balanzasLPAQ")
+knitr::kable(balanzasLPAQ, align = 'c')
+
+```
+En donde:
+
+* $Capacidad\;Máxima$ es la masa máxima que se puede pesar en la balanza, reportada por el fabricante
+* $Legibilidad$ es la mínima división de escala, $d$, reportada por el fabricante.
+*  $Repetibilidad$ Asociada con la dispersión de mediciones repetidas de masas patrón, expresada por el fabricante o determinada en una calibración.
+* La $desviación \; de\;la \;linealidad \;$ nos da información sobre que tanto varía la relación lineal entre la masa nominal y la lectura de la balanza.
+
+*  $la \;deriva \;en \;la \;sensibilidad \;por\; la\; deriva\; termica$ nos habla de como cambia la pendiente de la relación masa nominal $\rightarrow$ lectura, por un cambio en la temperatura. 
+
+* la $Tolerancia\; en \;la \;Sensibilidad$ expresa un intervalo dentro del cual pueden estar los valores de la sensibilidad, con una probabilidad dada.
+
+A partir de estas propiedades, es que las funciones `masa_minima` y `u_masa` pueden calcular masas en funcion de incertidumbres relativas, e incertidumbres y masas corregidas.
+
+Para saber más información sobre `masa_minima`:
 ```{r, eval = F}
 help(masa_minima)
 ```
 
-```{r,echo=FALSE,results='hide',fig.keep='all'}
+Por ejemplo, podemos calcular la cantidad de masa mínima de biftalato de potasio, con una densidad de $1636 \frac{Kg}{m^3}$, para cumplir con un máximo de incertidumbre relativa para la medición de masa $0.1\;g$:
+
+```{r, results='hide',fig.keep='all'}
 masa_minima(u_r = 0.1,densidad = 1636,balanza = "ME204")
 ```
 
+A continuación, calculamos la incertidumbre asociada a la medición de `0.1026\;g` en la balanza `ME204`, de un sólido  con densidad de $1636 \frac{Kg}{m^3}$ (biftalato de potasio):
+
 ```{r}
-m_KHP=u_masa(lectura = 0.1026,densidad = 1636,balanza = "ME204")
-m_KHP$m_s
+m_KHP=u_masa(lectura = 0.1026,
+             densidad = 1636,
+             balanza = "ME204")
+
+```
+
+La función `u_masa` nos devuelve una lista de tablas, teniendo en la primera posición de esta lista, un `data.frame` con dos columnas, en la primera columna la masa corregida por el efecto de flotación, y en la segunda columna la incertidumbre asociada a la medición de esta masa, en esta balanza. 
+
+```{r}
+str(m_KHP)
 ```
 
 
-
 # Incertidumbre en la pureza del biftalato
+
+La función `pureza` devuelve estimados de puereza en incertidumbre basados en especificaciones técnicas del reactivo. Debemos especificar los valores como fracciones de masa, en el intervalo  $0 \leq pureza \leq 1$.
 
 ```{r, eval = FALSE}
 help("pureza")
@@ -235,6 +327,21 @@ P_KHP
 
 # Incertidumbre por repetibilidad
 
+Para realizar el cálculo de la concentración de la solución de hidróxido de sodio, sin ser afectado por el valor de la repetibilidad, definimos la repetibilidad como `R =1`.
+
+Dado que en el experimento de este ejercicio solo se realizó una determinación, sin réplicas, la incertidumbre asociada a la repetiblidad se define como `u_R=0`.
+
+En el caso en el que se tengan réplicas, podemos reportar la incertidumbre asociada a la repetiblidad tal como se reporta en la [literatura](https://revistas.unal.edu.co/index.php/rcolquim/article/view/72401/70042):
+
+\begin{align}
+
+u_R = \frac{s}{\sqrt{n}}
+
+\end{align}
+
+en donde $s$ es la desviación estándar de las réplicas, (el resultado de concentración) y $n$ es el número de réplicas. 
+
+
 ```{r}
 R=1
 u_R=0.0
@@ -242,27 +349,101 @@ u_R=0.0
 
 # Estimación de la incertidumbre combinada
 
-## Coeficientes de sensibilidad
+Una vez hemos determinado todas las fuentes de incertidumbre y estimado las incertidumbres asociadas a dichas mediciones podemos estimarlas de la siquiente manera:
+
+* de forma general
+
+\begin{align}
+
+u^2_c (y) = \sum_{i=1}^N \left(\frac{\delta f}{\delta x_i}\right)^2 \cdot u^2(x_i)
+
+\end{align}
+
+\begin{align}
+
+u_c (y) = \left( \sum_{i=1}^N \left(\frac{\delta f}{\delta x_i}\right)^2 \cdot u^2(x_i) \right)^\frac{1}{2}
+
+\end{align}
+
+
+\begin{align}
+
+u_c (y) = \sqrt{ \sum_{i=1}^N \left(\frac{\delta f}{\delta x_i}\right)^2 \cdot u^2(x_i) }
+
+\end{align}
+
+En donde $\left(\frac{\delta f}{\delta x_i}\right)$ es el coeficiente de sensiblidad de $f$ respecto a $x_i$.
+
+* En este caso
+
+\begin{align}
+y = f(x_1, x_2, x_3,...,x_n) = C_{NaOH} (m_{KHP}, P_{KHP}, R, W_{KHP}, V_{NaOH})
+\end{align}
+
+\begin{align}
+u^2_c (C_{NaOH}) = \sum_{i=1}^5 \left(\frac{\delta f}{\delta x_i}\right)^2 \cdot u^2(x_i)
+\end{align}
+
+## Creación de una función que estima los coeficientes de sensibilidad para una función
+
+Para encontrar como cambia la concentración de hidróxido de sodio, como respuesta a los cambios en cada una de las variables de infuencia: `m_KHP`,`W_KHP`,`V_NaOH`,`P_KHP`y`R`
+Podemos utilizar la función `Deriv` del paquete con el mismo nombre, pasando como primer argumento la función que contiene el modelo matemático en `R`, `C_NaOH`, y como segundo argumento un vector de caracteres, que contiene los nombres de las variables con respecto a las cuales la función `C_NaOH` debe ser diferenciada.
 
 ```{r}
 library(Deriv)
-c_i=Deriv(C_NaOH,c("m_KHP","W_KHP","V_NaOH","P_KHP","R"))
-c_i
-```
-### Valores de los coeficientes de sensibilidad, obtenido a partir de los valores de la variables de influencia
+c_i=Deriv(C_NaOH,
+          c("m_KHP","W_KHP","V_NaOH","P_KHP","R"))
 
+```
+
+al imprimir el contenido de la funcion `c_i` vemos una descripcion de los pasos que se toman para calcular las derivadas de la función con una información de entrada determinada (los valores que toman las variables `m_KHP`,`W_KHP`,`V_NaOH`,`P_KHP`y`R`)
 
 ```{r}
-v_c_i=c_i(m_KHP$m_s$ms,W_KHP$MM,V_NaOH$V_NaOH,P_KHP$P,R)
+c_i 
+```
+
+
+
+### Valores de los coeficientes de sensibilidad, obtenido a partir de los valores de la variables de influencia
+
+Al tener lista la función `c_i`, podemos darle los valores de las variables de influencia para este experimento, dado que ya las definimos dentro de `R`, e incluso corregimos algunas como la pureza y la masa del biftalato en pasos anteriores. En este caso `c_i` a partir de los valores definidos calculará la magnitud de cada uno de los coeficientes de sensibilidad y lo guardará en cada posición del vector `v_c_i`:
+
+```{r}
+v_c_i <- c_i(m_KHP$m_s$ms,W_KHP$MM,V_NaOH$V_NaOH,P_KHP$P,R)
 v_c_i
 ```
 
+
 ### vector recogiendo las incertdumbres estándar de la diferentes fuentes
+
+Ya tenemos calculadas las incertidumbres de cada fuente, pero éstas están guardadas en cada objeto que creamos en los pasos anteriores, para juntarlas, podemos llamarlas por su nombre y guardarlas en un vector `u_i` en el mismo orden en el que están en el vector `v_c_i`. 
 ```{r}
 u_i=c(m_KHP$m_s$u_ms,W_KHP$u_MM,V_NaOH$u_V_NaOH,P_KHP$u_P,u_R)
 u_i
 ```
 # Incertidumbre combinada
+
+Una vez tenemos los valores de los coeficientes de sensiblidad, y de las incertidumbres, podemos combinarlas utilizando la ecuación:
+
+\begin{equation}
+
+
+u_c (C_{NaOH}) = \sqrt{\left( \frac{\delta C_{NaOH}}{\delta m_{KHP}}\right)^2 \cdot u^2(m_{KHP}) +
+\left( \frac{\delta C_{NaOH}}{\delta P_{KHP}}\right)^2 \cdot u^2( P_{KHP}) +
+
+\left( \frac{\delta C_{NaOH}}{\delta  R}\right)^2 \cdot u^2( R) + \\ 
+
+\left( \frac{\delta C_{NaOH}}{\delta  W_{KHP}}\right)^2 \cdot u^2(W_{KHP}) +
+
+\left( \frac{\delta C_{NaOH}}{\delta  V_{NaOH}}\right)^2 \cdot u^2(V_{NaOH})
+
+
+
+}
+
+
+\end{equation}
+ 
 
 ```{r}
 u_c=sqrt(sum((v_c_i*u_i)^2))
@@ -271,12 +452,30 @@ u_c
 
 
 # Obtención de incertidumbre expandida
+
+Una medida adicional de incertidumbre que cumple con el requerimiento de proporcionar un intervalo con nuestro resultado (para reportar la concentración) es la *incertidumbre expandida* , denotada como $U$. Ésta se obtiene al multiplicar la incertidumbre combinada, $u_c(C_{NaOH})$ por un factor de  $k$:
+
+\begin{align}
+U = k \cdot u_c(C_{NaOH})
+\end{align}
+
+
+
+
 ```{r}
 k=2 # Se expande asumiendo una distribución normal, para una probabilidad de confianza del 95 %
 U=k*u_c
 U # Incertidumbre expandida
 ```
+
 # Contribuciones de cada fuente
+
+Una vez tenemos la incertidumbre combinada y el valor de cada una de las fuentes de incertidumbre, podemos calcular la fracción relativa de cada una de las fuentes:
+
+
+\begin{align}
+contribución \;(x_i) = \frac{\left( \frac{\delta C_{NaOH}}{\delta x_i}\right)^2 \cdot u(x_i)^2}{u_c(C_{NaOH})}
+\end{align}
 
 ```{r}
 contribuciones=(v_c_i*u_i)^2/u_c^2
@@ -288,6 +487,8 @@ barplot(contribuciones*100,
 ```
 
 # Valor del mensurando
+
+Una vez hemos determinado la incertidumbre expandida, podemos reportar el valor de concentración utilizando la función `c_NaOH` que contiene el modelo matemático que relaciona la concentración de la solución, con las variables de influencia `m_KHP`,`W_KHP`,`V_NaOH`,`P_KHP`y`R`.
 
 ```{r}
 .C_NaOH=C_NaOH(m_KHP$m_s$ms,W_KHP$MM,V_NaOH$V_NaOH,P_KHP$P,R)
@@ -301,7 +502,7 @@ mensurando_C_NaOH
 
 
 
-# Ejemplo con datos reales.
+# Ejemplo con datos reales
 
 
 Para este ejemplo se utilizaran los datos resultantes de valoraciones repetidas de una muestra de cascara de huevo. Para determinar el porcentaje de carbonato de calcio $(CaCO_3)$ se determinó el contenido de calcio por gravimetría y por volumetría. En total, 20 grupos de laboratorio determinaron el contenido de calcio, mediante distintas metodologias de la siguiente manera:
@@ -382,6 +583,7 @@ df3$`Volumen EDTA (mL)`[21:30] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 
 df3$`Volumen EDTA (mL)`[41:50] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 0.15)
 df3$`Volumen EDTA (mL)` <- round(df3$`Volumen EDTA (mL)`,2)
 
+df3$`Volumen EDTA (mL)`[2:10] <- df3$`Volumen EDTA (mL)`[2:10] + 0.5
 df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
@@ -469,7 +671,9 @@ for(i in 1:10){
   
   sd.volumen[i] <- sd(c(volumenes1[i],volumenes2[i],volumenes3[i]))
 }
-sd.volumen
+volumenes.promedio <- as.data.frame(volumenes.promedio)
+# sd.volumen
+# volumenes.promedio$sd.replicas <- sd.volumen
 ```
 
 * Para las gravimetrías:
@@ -486,7 +690,14 @@ for(i in 1:10){
   sd.masa[i] <- sd(c(masas1[i],masas2[i],masas3[i]))
 }
 sd.masa
+
+
+
 ```
+
+
+
+
 Una vez tenemos separados nuestros datos, podemos proceder a estimar la incertidumbre teniendo encuenta los pasos recomendados por la [GUM](https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf/cb0ef43f-baa5-11cf-3f85-4dcd86f77bd6)
 
 
@@ -503,6 +714,7 @@ Para el caso de la volumetria, podemos expresar el modelo de la siguiente forma:
  \end{align}
  
  Podemos entonces crear esta función en `R`:
+ 
  
 ```{r}
 CaCO3_p.p <- function(FD,
@@ -532,7 +744,7 @@ cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
 ```
 En donde:
 
-* $FD\_{muestra}:$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo en un balón volumétrico.
+* $FD\_{muestra}:$ es el factor de dilución correspondiente a la toma de la alícuota con una pipeta de 10 mL a partir de un volumen de aforo de 50 mL en un balón volumétrico.
 * $W\_CaCO_3:$ Es la masa molar del carbonato de calcio
 * $V\_EDTA:$ es el volumen de EDTA gastado en la titulación, utilizando un material volumétrico (bureta) y un método para determinar el punto final (indicador, o mediante una curva potenciométrica)
 
@@ -541,7 +753,11 @@ En donde:
 * $Repetibilidad:$ La repetibilidad de los experimentos expresada como la desviación de las réplicas, con un valor de 1 y un aporte a la incertidumbre de $U_R = \dfrac{s}{\sqrt{n}}$.
 
 
-### Incertidumbre por masa molar de $CaCO_3$:
+### Incertidumbre por masa molar de $CaCO_3$
+
+
+Para determinar la incertidumbre asociada a la masa molar de carbonato de calcio, podemos utilizar de nuevo la función `getMolarMass` del paquete `AtomicWeights`.
+
 
 ```{r}
 library(AtomicWeights)
@@ -552,7 +768,7 @@ W_CaCO3
 ```
 ### Volumen de EDTA gastado en la valoración.
 
-#### Incertidumbre en la medición del punto final
+### Incertidumbre en la medición del punto final
 
 En este caso, tenemos dos variaciones, en el laboratorio solo había un electrodo de ion selectivo para calcio, entonces solo el primer grupo pudo hacer la determinación mediante titulación potenciométrica por triplicado.
 
@@ -562,7 +778,7 @@ El resto de grupos, realizaron la determinación del punto final mediante indica
 
 Entonces, podemos:
 
-* Determinar los puntos finales con su respectiva incertidumbre para las replicas del primer grupo
+* Determinar los puntos finales con su respectiva incertidumbre para las replicas del primer grupo.
 * Dados los puntos finales de los resultados de potenciometría, calcular la incertidumbre dada por la bureta.
 
 * Una vez tengamos estos valores, podemos hallar las incertidumbres de los puntos determinados con indicador, tal como se ha reportado en [literatura.](https://revistas.unal.edu.co/index.php/rcolquim/article/view/72401/70042) 
@@ -616,10 +832,10 @@ for(i in 2:4){
 Luego, podemos utilizar la función `puntoFinal` del paquete `uLPAQ` para estimar la incertidumbre por la determinación del punto final a partir de esta curva:
 
 
-```{r, message = F, warning=FALSE}
+```{r,results='hide' ,message = F, warning=FALSE}
   library(uLPAQ)
 puntos.finales <- list(3)
-
+par(mfrow=c(1,3))
 for(i in 1:3){
   puntos.finales[i] <- puntoFinal(curvasEDTA$Volumen.de.EDTA..mL.,curvasEDTA[,i+1])
   
@@ -628,22 +844,249 @@ puntos.finales
 ```
 
 
+Una vez tenemos el volumen dado por la potenciometría, podemos promediar los resultados, y estimar la incertidumbre de este promedio:
+
+```{r}
+volumenes.promedio$volumenes.promedio[1] <- mean(puntos.finales[[1]]$PE,puntos.finales[[2]]$PE,puntos.finales[[3]]$PE)
+
+
+volumenes.promedio <- as.data.frame(volumenes.promedio)
+volumenes.promedio$U.PF.Class[1] <- sqrt(puntos.finales[[1]]$u_PE+puntos.finales[[2]]$u_PE+puntos.finales[[3]]$u_PE)
+
+```
+
+Para determinar las incertidumbres de las determinaciones mediante uso del indicador, se pueden utilizar dos procedimientos:
+
+1. El procedimiento clásico, el cual se utiliza cuando **No hay un valor de referencia** mediante el cual se determina la incertidumbre en la determinación del punto final mediante:
+
+\begin{align}
+u_{Qpf} = \frac{R}{2\sqrt{3}}
+\end{align}
+
+En donde $U_{Qpf}$ es la incertidumbre en el punto final y $R$ corresponde a la resolución del istrumento volumétrico. En la [literatura](https://revistas.unal.edu.co/index.php/rcolquim/article/view/72401/70042) se encuentra reportado que este procedimiento no aplica para todos los casos y solo aplica si el error sistematico es igual a la resolución del instrumento.
+
+2. El procedimiento mediante el cual se hace uso de un **valor de referencia**
+
+\begin{align}
+
+u_{Qpf} = \frac{D}{\sqrt{3}}
+\end{align}
+
+Donde D corresponde a la estimación del error sistemático debido al sistema de detección, y **no** al instrumento de medición del agente titulante.
+
+Entonces, para los últimos 9 grupos, podemos determinar la incertidumbre de las dos maneras, ya que tenemos un valor de referencia con las curvas de potenciometría.
+
+```{r}
+volumenes.promedio$U.PF.Class[2:10] <- 0.05/2*sqrt(3)
+```
+
+A su vez podemos calcular las incertidumbres con el método de referencia:
+
+```{r}
+volumenes.promedio$U.PF.Ref[1] <- volumenes.promedio$U.PF.Class[1]
+volumenes.promedio$U.PF.Ref[2:10] <- abs(volumenes.promedio$volumenes.promedio[1]-volumenes.promedio$volumenes.promedio[2:10])/sqrt(3)
+par(mfrow=c(1,2))
+barplot(volumenes.promedio$U.PF.Class, ylim = c(0,0.4))
+barplot(volumenes.promedio$U.PF.Ref,  ylim = c(0,0.4))
+```
+
 
 #### Incertidumbre por el uso de material volumétrico (bureta de capacidad de 25mL)
 
 ```{r}
-# library(uLPAQ)
-# bureta_EDTA <- instVolumetrico(nominal=25,
-#                             subdivision =0.05 ,
-#                             tipo="bureta",
-#                             temp = 17.5,
-#                             clase="A_AS",
-#                             volumen=PF.EDTA$d1nu)
-# 
-# bureta_EDTA
+ library(uLPAQ)
+U_buretas <- vector('list',10)
+
+for(i in 1:10){
+  
+
+U_buretas[[i]] <- instVolumetrico(nominal=25,
+                            subdivision =0.05 ,
+                            tipo="bureta",
+                            clase="A_AS",
+                            volumen=volumenes.promedio$volumenes.promedio[i],
+                            temp = 17.5)$u_V
+}
+U_buretas <- unlist(U_buretas)
+for(i in 1:10){
+  
+  volumenes.promedio$u_bureta[i] <- as.numeric(U_buretas[i])
+  
+}
+
 ```
- 
+
+
+# Incertidumbre en el volumen de agente titulante: EDTA teniendo en cuenta la determinación del punto final y el uso de material volumétrico:
+
+Una vez tenemos las incertidumbres para todos los grupos, podemos calcular la incertidumbre combinada para la determinación del volumen de titulante:
+
+```{r}
+u_V_EDTA <- vector('numeric',10)
+
+  
+  u_V_EDTA <- sqrt(volumenes.promedio$U.PF.Ref^2+volumenes.promedio$u_bureta^2) 
+
+  volumenes.promedio$u_V_EDTA <- u_V_EDTA
+  
+par(mfrow = c(1,3))
+barplot(volumenes.promedio$U.PF.Ref, main = 'u punto final')
+barplot(volumenes.promedio$u_bureta, main = 'u bureta')
+barplot(volumenes.promedio$u_V_EDTA, main = 'u volumen EDTA')
+```
+
+Incertidumbre en mediciones de masa: masa inicial de muestra de cáscara de huevo.
+
+Ya que todos los grupos tuvieron la destreza de pesar 0.500 g, podemos calcular la incertidumbre dada por la pesada de esta muestra de la siguiente manera:
+
+* Para este experimento se determino la denisdad de la cascara de huevo como: $ 1085 \dfrac{kg}{L}$
+
+```{r}
+masas.corregidas <- vector('numeric',10)
+u_masas <- vector('numeric',10)
+
+for(i in 1:10){
+  
+  masas.corregidas[i] <-  u_masa(lectura=0.500,
+      densidad = 1085,
+      balanza = "ME204")$m_s$ms
+}
+
+for(i in 1:10){
+  
+  u_masas[i] <-  u_masa(lectura=0.500,
+      densidad = 1085,
+      balanza = "ME204")$m_s$u_ms
+}
+
+volumenes.promedio$masas_corregidas <- masas.corregidas
+volumenes.promedio$u_masas <- u_masas
+```
+
+# Incertidumbre por dilución y toma de alícuota
+
+Para este procedimiento se utilizaron:
+
+* un balón de 50 $\pm$ 0.050 mL clase A
+* una pipeta de 10 $\pm$ 0.02 mL clase A
+
+
+```{r}
+balon50 <- instVolumetrico(nominal =50,
+                tipo="balon",
+                clase="A",
+                temp=17.5)
+
+pipeta10 <- instVolumetrico(nominal=10,tipo="pipeta",clase="A_AS",temp=17.5)
+
+u_dilucion <- sqrt(balon50$u_V^2 + pipeta10$u_V^2)
+
+volumenes.promedio$u_dilucion <- rep(u_dilucion,10)
+```
+
+# Incertidumbre por concentración de la solución de EDTA
+
+La concentración de la solución estandarizada reporta una incertidumbre expandida de: $\pm$ 0.001M con un k =2
+
+podemos calcular la incertidumbre estandar:
+
+```{r}
+u_C_EDTA <- 0.001/2
+volumenes.promedio$u_C_EDTA <- rep(u_C_EDTA,10)
+```
+
+
+# Incertidumbre por repetibilidad
+
+Debido a que cada experimento se realizo por triplicado, podemos usar la incertidumbre asociada a la repetibilidad para cada experimento como:
+
+$\frac{s}{\sqrt{n}}$
+
+Dado que ya estimamos las desviaciones estandar de las réplicas para cada grupo, podemos añadir a nuestro data.frame llamado `volumenes.promedio` en el cual estamos guardando por columnas, las incertidumbres de cada fuente para los 1 grupos que realizaron una volumetría.
+
+```{r}
+volumenes.promedio$u_R <- sd.volumen/sqrt(10)
+```
+
+### Creación de la función que estima los coeficientes de sensibilidad
+
+Dado el modelo matematico construido a partir del factor de conversión necesario para calcular el porcentaje de $CaCO_3$, almacenado en la función `CaCO3_p.p`, podemos utilizar la función `Deriv` del paquete que lleva el mismo nombre para calcular las derivadas parciales del porcentaje de carbonato de calcio respecto a las variables de entrada:
+
+```{r}
+library(Deriv)
+c_i = Deriv(CaCO3_p.p,c('FD',
+                      'V_EDTA',
+                      'W_CaCO3',
+                      'C_EDTA',
+                     ' R',
+                      'm_muestra'))
+c_i
+```
+### Valores de los coeficientes de sensibilidad, obtenido a partir de los valores de la variables de influencia
+
+```{r}
+coef.matrix <- matrix(nrow = 10, ncol = 6)
+
+for(i in 1:10){
+  
+  coef.matrix[i,] <- c_i(FD = 50/10,
+                         V_EDTA = volumenes.promedio$volumenes.promedio[i],
+                         W_CaCO3 = W_CaCO3$MM,
+                          C_EDTA = 0.100,
+                         R = 1,
+                        m_muestra = 0.500)
+}
+```
+
+### Matriz recogiendo las incertidumbres estándar de las distintas fuentes
+
+```{r}
+u_matrix = data.frame(FD = volumenes.promedio$u_dilucion,
+                      V_EDTA= volumenes.promedio$u_V_EDTA,
+                      W_CaCO3 = rep(W_CaCO3$u_MM,10),
+                      C_EDTA = volumenes.promedio$u_C_EDTA,
+                      R = volumenes.promedio$u_R,
+                      m_muestra = volumenes.promedio$u_masas)
+```
+
+
+Ahora podemos calcular un vector de incertidumbres combinadas para cada uno de los grupos de laboratorio que desarrollaron la valoración mediante volumetría.
+
+Primero, creamos un vector para guardar las incertidumbres:
+
+```{r}
+u_c <- vector('numeric',10)
+
+```
+
+Luego calculamos fila por fila, la incertidumbre combinada:
+
+```{r}
+for(i in 1:10){
+  
+  u_c[i] <- sqrt(sum((coef.matrix[i,]*u_matrix[i,])^2))
+}
+
+```
+
+
+# Incertidumbres expandidas
+
+```{r}
+k=2
+U=k*u_c
+```
+
+# Contribuciones de cada fuente
+
+```{r}
+
+```
+
+
+
+Una vez tenemos todas las fuentes de incertidumbre, podemos graficar y comparar las 
 
 ## Gravimetria
 
-
+Coming soon...
