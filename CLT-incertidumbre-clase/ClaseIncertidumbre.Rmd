@@ -15,7 +15,7 @@ library(usethis)
 library(devtools)
 ```
 
-Luego, usando la funcion `install_github()` pasando como arentos la dirección del repositorio en el cual está el paquete, y `force = TRUE` para evitar problemas durante la instalación.
+Luego, usando la funcion `install_github()` pasando como argumentos la dirección del repositorio en el cual está el paquete, y `force = TRUE` para evitar problemas durante la instalación.
 
 ```{r, eval = FALSE}
 install_github('https://github.com/sergmonic/AtomicWeights/',force = TRUE)
@@ -52,7 +52,7 @@ Y = f(X_1, X_2, ..., x_n)
 \end{align}
 
 
-Esta expresión debe contener cada cantidad que puede contribuir en la incertidumbre del resultado de la medición.
+Esta expresión debe contener cada cantidad que puede contribuir a la incertidumbre del resultado de la medición.
 
 5. Estimar las incertidumbres asociadas a cada funte de error (contribuciones). Convertir a incertidumbres estándar.
 
@@ -60,7 +60,7 @@ Esta expresión debe contener cada cantidad que puede contribuir en la incertidu
 
 6. Combinar las incertidumbres para obtener la **incertidumbre combinada**.
 
-   Para sumas: \textit{U combinada}
+   Para sumas (siempre y cuando las contribuciones tengan las mismas unidades):
         
      \begin{align}
     y = a + b, y = a - b
@@ -84,7 +84,7 @@ Esta expresión debe contener cada cantidad que puede contribuir en la incertidu
 U = ku
 \end{align}
  
-# Modelo Matematico del mesurando e identificación de fuentes de incertidumbre.
+# Modelo Matemático del mesurando e identificación de fuentes de incertidumbre.
 
 
 * Mesurando: Concentración molar de NaOH: obtenida mediante titulación volumétrica empleando KHP y con seguimiento potenciométrico.
@@ -583,7 +583,7 @@ df3$`Volumen EDTA (mL)`[21:30] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 
 df3$`Volumen EDTA (mL)`[41:50] <-df3$`Volumen EDTA (mL)`[1:10] + rnorm(10, sd = 0.15)
 df3$`Volumen EDTA (mL)` <- round(df3$`Volumen EDTA (mL)`,2)
 
-df3$`Volumen EDTA (mL)`[2:10] <- df3$`Volumen EDTA (mL)`[2:10] + 0.5
+df3$`Volumen EDTA (mL)`[2:10] <- df3$`Volumen EDTA (mL)`[2:10] + 0.1
 df3$`Masa final (g)`[31:40] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)`[51:60] <-df3$`Masa final (g)`[11:20] + rnorm(10, sd = 0.001)
 df3$`Masa final (g)` <- round(df3$`Masa final (g)`,4)
@@ -656,6 +656,8 @@ hist(volumenes)
 ```
 Ahora podemos ver que no hay datos atípicos sesgando la distribución de los resultados experimentales.
 
+## Calculo de los promedios y las desviaciones estándar{#custom}
+
 Una vez realizamos este análisis exploratorio, podemos proceder a calcular los promedios de las réplicas y sus respectivas desviaciones estándar (Éstas serán útiles para la incertidumbre dada por repetibilidad para cada experimento)
 
 * Para las volumetrias:
@@ -703,7 +705,7 @@ Una vez tenemos separados nuestros datos, podemos proceder a estimar la incertid
 
 ## Volumetría 
 
-### Modelo Matematico del  mesurando e identificación de fuentes de incertidumbre
+### Modelo Matemático del  mesurando e identificación de fuentes de incertidumbre
 
 Para el caso de la volumetria, podemos expresar el modelo de la siguiente forma:
 
@@ -734,7 +736,7 @@ CaCO3_p.p <- function(FD,
  
 ```{r, echo = F, eval = T, message = F}
 library(qcc)
-cause.and.effect(cause=list(FD_muestra = c('balon','pipeta 10 mL'),
+cause.and.effect(cause=list(FD_muestra = c('balon 50 mL','pipeta 10 mL'),
                             W_CaCO3 = '(g/mol)',
                             V_EDTA = c('material volumetrico', 'punto final'),
                             m_muestra = 'balanza (g)',
@@ -788,12 +790,14 @@ Entonces, podemos:
 
 ```{r, echo = FALSE, fig.show='hide'}
 library(titrationCurves)
+
+
 curva1 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[1]*0.1/50,eqpt = TRUE)
 curva2 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[21]*0.1/50,eqpt = TRUE)
 curva3 <- metal_edta(conc.metal = df3$`Volumen EDTA (mL)`[41]*0.1/50,eqpt = TRUE)
 curva3 <- curva3[-c(661),]
-curvas <- cbind(curva1,curva2[,2]+0.5,curva3[,2]+0.2)
-colnames(curvas) <- c('Volumen de EDTA (mL)', 'pCa-1','pCa-2','pCa-3')
+curvas <- cbind(curva1,curva2,curva3)
+colnames(curvas) <- c('Volumen de EDTA (mL) 1', 'pCa-1','Volumen de EDTA (mL) 2', 'pCa-2','Volumen de EDTA (mL) 3','pCa-3')
 write.csv(curvas, 'curvasEDTA.csv', row.names = F)
 
 ```
@@ -812,19 +816,36 @@ curvasEDTA  <- read.csv('curvasEDTA.csv', sep = ',', header = TRUE)
 Podemos graficar las curvas de titulación:
 
 ```{r}
-
-for(i in 2:4){
- plot(curvasEDTA$Volumen.de.EDTA..mL.,
-     curvasEDTA[,i],
+ plot(curvasEDTA[,1],
+     curvasEDTA[,2],
      type = 'l',
      xlab = 'Volumen de EDTA (mL)',
      ylab = 'pCa',
      xlim = c(5,10),
-     col = c(1,2,3,1)[i],
+     col = 1,
      ylim = c(1,9)
 ) 
- par(new =T) 
-}
+par(new =T)
+ plot(curvasEDTA[,3],
+     curvasEDTA[,4],
+     type = 'l',
+     xlab = '',
+     ylab = '',
+     xlim = c(5,10),
+     col = 2,
+     ylim = c(1,9)
+     
+) 
+par(new =T)
+  plot(curvasEDTA[,5],
+     curvasEDTA[,6],
+     type = 'l',
+     xlab = '',
+     ylab = '',
+     xlim = c(5,10),
+     col = 3,
+     ylim = c(1,9)
+  )
 
 ```
 
@@ -836,8 +857,8 @@ Luego, podemos utilizar la función `puntoFinal` del paquete `uLPAQ` para estima
   library(uLPAQ)
 puntos.finales <- list(3)
 par(mfrow=c(1,3))
-for(i in 1:3){
-  puntos.finales[i] <- puntoFinal(curvasEDTA$Volumen.de.EDTA..mL.,curvasEDTA[,i+1])
+for(i in c(1,3,5)){
+  puntos.finales[i] <- puntoFinal(curvasEDTA[,i],curvasEDTA[,i+1])
   
 }
 puntos.finales
@@ -847,11 +868,11 @@ puntos.finales
 Una vez tenemos el volumen dado por la potenciometría, podemos promediar los resultados, y estimar la incertidumbre de este promedio:
 
 ```{r}
-volumenes.promedio$volumenes.promedio[1] <- mean(puntos.finales[[1]]$PE,puntos.finales[[2]]$PE,puntos.finales[[3]]$PE)
+volumenes.promedio$volumenes.promedio[1] <- mean(puntos.finales[[1]]$PE,puntos.finales[[3]]$PE,puntos.finales[[5]]$PE)
 
 
 volumenes.promedio <- as.data.frame(volumenes.promedio)
-volumenes.promedio$U.PF.Class[1] <- sqrt(puntos.finales[[1]]$u_PE+puntos.finales[[2]]$u_PE+puntos.finales[[3]]$u_PE)
+volumenes.promedio$U.PF.Class[1] <- sqrt(puntos.finales[[1]]$u_PE+puntos.finales[[3]]$u_PE+puntos.finales[[5]]$u_PE)
 
 ```
 
@@ -930,16 +951,18 @@ u_V_EDTA <- vector('numeric',10)
   volumenes.promedio$u_V_EDTA <- u_V_EDTA
   
 par(mfrow = c(1,3))
-barplot(volumenes.promedio$U.PF.Ref, main = 'u punto final')
-barplot(volumenes.promedio$u_bureta, main = 'u bureta')
-barplot(volumenes.promedio$u_V_EDTA, main = 'u volumen EDTA')
+barplot(volumenes.promedio$U.PF.Ref, main = 'u punto final' , ylim = c(0,0.5))
+barplot(volumenes.promedio$u_bureta, main = 'u bureta', ylim = c(0,0.5))
+barplot(volumenes.promedio$u_V_EDTA, main = 'u volumen EDTA' , ylim = c(0,0.5))
 ```
 
-Incertidumbre en mediciones de masa: masa inicial de muestra de cáscara de huevo.
+
+# Incertidumbre en mediciones de masa: masa inicial de muestra de cáscara de huevo.
 
 Ya que todos los grupos tuvieron la destreza de pesar 0.500 g, podemos calcular la incertidumbre dada por la pesada de esta muestra de la siguiente manera:
 
-* Para este experimento se determino la denisdad de la cascara de huevo como: $ 1085 \dfrac{kg}{L}$
+* Para este experimento se determino la denisdad de la cascara de huevo como: $1085 \dfrac{kg}{L}$
+
 
 ```{r}
 masas.corregidas <- vector('numeric',10)
@@ -1010,7 +1033,7 @@ volumenes.promedio$u_R <- sd.volumen/sqrt(10)
 
 ### Creación de la función que estima los coeficientes de sensibilidad
 
-Dado el modelo matematico construido a partir del factor de conversión necesario para calcular el porcentaje de $CaCO_3$, almacenado en la función `CaCO3_p.p`, podemos utilizar la función `Deriv` del paquete que lleva el mismo nombre para calcular las derivadas parciales del porcentaje de carbonato de calcio respecto a las variables de entrada:
+Dado el modelo matemático construido a partir del factor de conversión necesario para calcular el porcentaje de $CaCO_3$, almacenado en la función `CaCO3_p.p`, podemos utilizar la función `Deriv` del paquete que lleva el mismo nombre para calcular las derivadas parciales del porcentaje de carbonato de calcio respecto a las variables de entrada:
 
 ```{r}
 library(Deriv)
@@ -1042,7 +1065,7 @@ for(i in 1:10){
 
 ```{r}
 u_matrix = data.frame(FD = volumenes.promedio$u_dilucion,
-                      V_EDTA= volumenes.promedio$u_V_EDTA,
+                      V_EDTA = volumenes.promedio$u_V_EDTA,
                       W_CaCO3 = rep(W_CaCO3$u_MM,10),
                       C_EDTA = volumenes.promedio$u_C_EDTA,
                       R = volumenes.promedio$u_R,
@@ -1072,6 +1095,8 @@ for(i in 1:10){
 
 # Incertidumbres expandidas
 
+Una vez tenemos el valor de las incertidumbres combinadas para cada muestra, podemos escoger un factor de cobertura de 2 y expresar la incertidumbre expandida.
+
 ```{r}
 k=2
 U=k*u_c
@@ -1080,13 +1105,162 @@ U=k*u_c
 # Contribuciones de cada fuente
 
 ```{r}
+contribuciones.vol <- matrix(nrow = 10, ncol = 6)
+
+for(i in 1:10){
+  for(j in 1:6){
+  
+  contribuciones.vol[i,j] <- ((coef.matrix[i,j]*u_matrix[i,j])^2)/u_c[i]^2
+  }
+}
+
+colnames(contribuciones.vol) <- colnames(u_matrix)
 
 ```
 
 
 
-Una vez tenemos todas las fuentes de incertidumbre, podemos graficar y comparar las 
+Con el calculo de todas las fuentes de incertidumbre,  y la incertidumbre combinada, podemos graficar y compararlas entre muestras:
+
+```{r}
+
+#win.graph()
+#par(mfrow = c(5,2))
+par(las=2)
+par(mfrow = c(2,5))
+
+for(i in 1:10){
+  barplot(contribuciones.vol[i,]*100,
+        xlab="(%)",
+        ylab=" ", 
+        main= paste('contribuciones muestra #', as.character(i)),
+        horiz =T)
+  
+}
+```
+
+# Reporte de las concentraciones de cada grupo:
+
+primero, calculamos las concentraciones de cada uno de las muestras, a partir de los volumenes promediados:
+
+```{r}
+concentraciones <- vector('numeric', 10)
+
+for (i in 1:10){
+  
+  concentraciones[i] <- CaCO3_p.p(FD = 50/10,
+                                  V_EDTA = volumenes.promedio$volumenes.promedio[i],
+                                  W_CaCO3 = W_CaCO3$MM,
+                                  C_EDTA =0.100,
+                                  R = 1,
+                                  m_muestra = 0.5
+                                  )
+  
+}
+
+
+```
+
+```{r}
+mesurando.volumen <- data.frame(`% p/p CaCO3` = concentraciones, 
+                        `U` = U)
+colnames(mesurando.volumen) <- c('CaCO3 (% p/p)','U')
+```
+
+
+```{r}
+knitr::kable(mesurando.volumen, align = 'c')
+```
+
 
 ## Gravimetria
 
-Coming soon...
+### Construcción del modelo matemático e identificacion de fuentes de incertidumbre
+
+Para el caso de la calcinación final luego de la precipitación, podemos revisar el [análisis termo-gravimétrico](https://www.semanticscholar.org/paper/Scanning-Electron-Microscope-(SEM)-Porath/a9d3fb21c814ab661fd6318f43e37e3fb07b0abb) para el oxalato de calcio, con el objetivo de saber la especie de calcio a la cual le vamos a determinar la masa luego de su calcinación:
+
+![](img/tga.png)
+
+En donde podemos observar que a temperaturas mayores a 980 °C, la especie de calcio presente es $CaO$. 
+
+El modelo matemático para el porcentaje de $CaCO_3$ es:
+
+
+\begin{align}
+\% \; CaCO_3 = \frac{m_f \;\cdot\; W_{CaCO_3}\;\cdot\;FD\;\cdot\;100}{W_{CaO}\;\cdot\; m_{muestra}}
+\end{align}
+
+ingresando el modelo a R:
+
+```{r}
+CaCO3_grav <- function(W_CaCO3, 
+                        FD, 
+                       m_muestra, 
+                       R, 
+                       m_final)
+{
+ ( m_final * W_CaCO3 * FD * 100  )/ (W_CaO * m_muestra)
+}
+  
+```
+
+
+Podemos entonces en este caso realizar el análisis mediante el diagrama de causa y efecto de Ishikawa:
+
+
+```{r, echo = F, eval = T, message = F}
+library(qcc)
+cause.and.effect(cause=list(FD_muestra = c('balon 50 mL','pipeta 10 mL'),
+                            W_CaCO3 = '(g/mol)',
+                            W_CaO = '(g/mol)',
+                            m_muestra = 'balanza (g)',
+                             Repetibilidad= '1',
+                            m_final = 'balanza (g)'),
+                 effect = expression(paste(' % CaCO3')))
+```
+
+
+ya que en una sección [anterior](#custom) calculamos las masas finales promedio y las guardamos en `masas.promedio`, podemos utilizarlas para construir paso a paso una tabla que contiene las incertidumbres asociadas a cada fuente, para cada muestra:
+
+```{r}
+tabla.gravimetria <- data.frame(masas.promedio = masas.promedio)
+```
+
+Una vez tenemos identificadas las fuentes que contribuyen a la incertidumbre del mesurando, podemos iniciar su cuantificación.
+
+### Incertidumbre por masas molares: $CaCO_3$ y  $CaO$
+
+#### Masa molar de $CaCO_3$
+
+En este caso, ya hemos determinado la masa molar del carbonato de calcio, y su incertidumbre asociada. Podemos acceder a el de la siguiente manera:
+
+```{r}
+W_CaCO3
+```
+
+#### Masa molar de $CaO$
+
+Para determinar la masa molar del $CaO$ y su incertidumbre asociada, podemos utilizar la función `getMolarMass`:
+
+```{r}
+ W_CaO <- getMolarMass(atomsType = c('Ca','O'),
+                       c(1,1)
+                       )
+W_CaO
+```
+# Incertidumbre asociada al factor de dilución $FD$
+
+
+```{r}
+balon50 <- instVolumetrico(nominal =50,
+                tipo="balon",
+                clase="A",
+                temp=17.5)
+
+pipeta10 <- instVolumetrico(nominal=10,tipo="pipeta",clase="A_AS",temp=17.5)
+
+u_dilucion <- sqrt(balon50$u_V^2 + pipeta10$u_V^2)
+```
+
+# Incertidumbre asociada a la medición de masa para la muestra de cáscara de huevo
+
