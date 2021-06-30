@@ -384,7 +384,7 @@ y = f(x_1, x_2, x_3,...,x_n) = C_{NaOH} (m_{KHP}, P_{KHP}, R, W_{KHP}, V_{NaOH})
 u^2_c (C_{NaOH}) = \sum_{i=1}^5 \left(\frac{\delta f}{\delta x_i}\right)^2 \cdot u^2(x_i)
 \end{align}
 
-## Creación de una función que estima los coeficientes de sensibilidad para una función
+## Creación de una función que estima los coeficientes de sensibilidad para una función de `R` que contiene el modelo matemático
 
 Para encontrar como cambia la concentración de hidróxido de sodio, como respuesta a los cambios en cada una de las variables de infuencia: `m_KHP`,`W_KHP`,`V_NaOH`,`P_KHP`y`R`
 Podemos utilizar la función `Deriv` del paquete con el mismo nombre, pasando como primer argumento la función que contiene el modelo matemático en `R`, `C_NaOH`, y como segundo argumento un vector de caracteres, que contiene los nombres de las variables con respecto a las cuales la función `C_NaOH` debe ser diferenciada.
@@ -685,9 +685,9 @@ volumenes.promedio <- as.data.frame(volumenes.promedio)
  masas2 <- filter(gravimetria, replica ==2) %>% select(Masa.final..g.)%>% unlist()
  masas3 <- filter(gravimetria, replica ==3) %>% select(Masa.final..g.)%>% unlist()
 
-masas.promedio <- (masas1+masas2+masas3)/3
-sd.masa <- vector('numeric',10)
-for(i in 1:10){
+masas.promedio.CaO <- (masas1+masas2+masas3)/3
+sd.masa <- vector('numeric',9)
+for(i in 1:9){
   
   sd.masa[i] <- sd(c(masas1[i],masas2[i],masas3[i]))
 }
@@ -961,7 +961,7 @@ barplot(volumenes.promedio$u_V_EDTA, main = 'u volumen EDTA' , ylim = c(0,0.5))
 
 Ya que todos los grupos tuvieron la destreza de pesar 0.500 g, podemos calcular la incertidumbre dada por la pesada de esta muestra de la siguiente manera:
 
-* Para este experimento se determino la denisdad de la cascara de huevo como: $1085 \dfrac{kg}{L}$
+* Para este experimento se determino la densidad de la cáscara de huevo como: $1085 \dfrac{kg}{L}$
 
 
 ```{r}
@@ -1028,7 +1028,7 @@ $\frac{s}{\sqrt{n}}$
 Dado que ya estimamos las desviaciones estandar de las réplicas para cada grupo, podemos añadir a nuestro data.frame llamado `volumenes.promedio` en el cual estamos guardando por columnas, las incertidumbres de cada fuente para los 1 grupos que realizaron una volumetría.
 
 ```{r}
-volumenes.promedio$u_R <- sd.volumen/sqrt(10)
+volumenes.promedio$u_R <- sd.volumen/sqrt(3)
 ```
 
 ### Creación de la función que estima los coeficientes de sensibilidad
@@ -1133,13 +1133,13 @@ for(i in 1:10){
   barplot(contribuciones.vol[i,]*100,
         xlab="(%)",
         ylab=" ", 
-        main= paste('contribuciones muestra #', as.character(i)),
+        main= paste('contribuciones #', as.character(i)),
         horiz =T)
   
 }
 ```
 
-# Reporte de las concentraciones de cada grupo:
+### Reporte de las concentraciones de cada grupo:
 
 primero, calculamos las concentraciones de cada uno de las muestras, a partir de los volumenes promediados:
 
@@ -1173,7 +1173,7 @@ knitr::kable(mesurando.volumen, align = 'c')
 ```
 
 
-## Gravimetria
+# Gravimetria
 
 ### Construcción del modelo matemático e identificacion de fuentes de incertidumbre
 
@@ -1183,7 +1183,7 @@ Para el caso de la calcinación final luego de la precipitación, podemos revisa
 
 En donde podemos observar que a temperaturas mayores a 980 °C, la especie de calcio presente es $CaO$. 
 
-El modelo matemático para el porcentaje de $CaCO_3$ es:
+El modelo matemático para el porcentaje de $CaCO_3$ determinado mediante gravimetría es:
 
 
 \begin{align}
@@ -1194,12 +1194,13 @@ ingresando el modelo a R:
 
 ```{r}
 CaCO3_grav <- function(W_CaCO3, 
+                       W_CaO,
                         FD, 
                        m_muestra, 
                        R, 
                        m_final)
 {
- ( m_final * W_CaCO3 * FD * 100  )/ (W_CaO * m_muestra)
+ ( m_final * W_CaCO3 * FD * 100 * R )/ (W_CaO * m_muestra)
 }
   
 ```
@@ -1220,13 +1221,57 @@ cause.and.effect(cause=list(FD_muestra = c('balon 50 mL','pipeta 10 mL'),
 ```
 
 
-ya que en una sección [anterior](#custom) calculamos las masas finales promedio y las guardamos en `masas.promedio`, podemos utilizarlas para construir paso a paso una tabla que contiene las incertidumbres asociadas a cada fuente, para cada muestra:
+ya que en una sección [anterior](#custom) calculamos las masas finales promedio y las guardamos en `masas.promedio.CaO`, podemos utilizarlas para construir paso a paso una tabla que contiene las incertidumbres asociadas a cada fuente, para cada muestra:
 
 ```{r}
-tabla.gravimetria <- data.frame(masas.promedio = masas.promedio)
+tabla.gravimetria <- data.frame(masas.promedio.CaO = masas.promedio.CaO)
 ```
 
 Una vez tenemos identificadas las fuentes que contribuyen a la incertidumbre del mesurando, podemos iniciar su cuantificación.
+
+### Incertidumbre por medición de masa final $CaO$ luego de la calcinación 
+
+Como ya tenemos las 9 masas promedio en la tabla `tabla.gravimetria`, podemos determinar la incertidumbre de cada una de estas masas: 
+
+
+* Teniendo en cuenta que el $CaO$ tiene una densidad de $3340 \frac{kg}{m^3}$.
+
+* Además, que se realizaron las mediciones de masa en la balanza `ME204`.
+
+
+Primero, determinamos las masas corregidas del solido resultante después de la calcinación, $CaO$:
+
+```{r}
+masa_corregida_CaO <- vector('list',9) # una lista, en la cual podemos guardar en cada posicion un data.frame (el resultado de la funcion u_masa)
+
+for (i in 1:9) {
+
+  masa_corregida_CaO[[i]] <-  u_masa( tabla.gravimetria$masas.promedio.CaO[i],
+                          densidad = 3340,
+                          balanza= 'ME204')$m_s$ms
+}
+
+tabla.gravimetria$masa_corregida_CaO <- unlist(masa_corregida_CaO)
+
+```
+
+Luego podemos determinar las incertidumbres asociadas a las mediciones de dichas masas:
+
+```{r}
+
+u_masa_CaO <- vector('list',9)
+
+for(i in 1:9){
+
+ u_masa_CaO[[i]] <- u_masa(lectura = tabla.gravimetria$masas.promedio.CaO[i],
+                          densidad = 3340,
+                          balanza= 'ME204')$m_s$u_ms
+}
+
+tabla.gravimetria$u_masa_CaO <- unlist(u_masa_CaO)
+```
+
+
 
 ### Incertidumbre por masas molares: $CaCO_3$ y  $CaO$
 
@@ -1236,6 +1281,8 @@ En este caso, ya hemos determinado la masa molar del carbonato de calcio, y su i
 
 ```{r}
 W_CaCO3
+
+tabla.gravimetria$u_W_CaCO3 <- W_CaCO3$u_MM
 ```
 
 #### Masa molar de $CaO$
@@ -1247,9 +1294,12 @@ Para determinar la masa molar del $CaO$ y su incertidumbre asociada, podemos uti
                        c(1,1)
                        )
 W_CaO
+
+tabla.gravimetria$u_W_CaO <- W_CaO$u_MM
 ```
 # Incertidumbre asociada al factor de dilución $FD$
 
+ya que todas las muestras fueron sometidas a la misma dilución y toma de alícuota, podemos calcular una sola vez la incertidumbre asociada a su factor de dilución:
 
 ```{r}
 balon50 <- instVolumetrico(nominal =50,
@@ -1260,7 +1310,206 @@ balon50 <- instVolumetrico(nominal =50,
 pipeta10 <- instVolumetrico(nominal=10,tipo="pipeta",clase="A_AS",temp=17.5)
 
 u_dilucion <- sqrt(balon50$u_V^2 + pipeta10$u_V^2)
+
+tabla.gravimetria$u_dilucion <- u_dilucion
 ```
+
+
 
 # Incertidumbre asociada a la medición de masa para la muestra de cáscara de huevo
 
+Ya que todos los grupos tuvieron la destreza de pesar la misma masa, 2.500 g, podemos estimar la incertidumbre asociada a la medición de esta masa, teniendo en cuenta que se determinó experimentalmente que la masa de la cáscara de huevo es $1085 \dfrac{kg}{L}$:
+
+```{r}
+masas.corregidas.cascara <- vector('numeric',9)
+u_masas.cascara <- vector('numeric',9)
+
+for(i in 1:9){
+  
+  masas.corregidas.cascara[i] <-  u_masa(lectura=2.500,
+      densidad = 1085,
+      balanza = "AES220")$m_s$ms
+}
+
+tabla.gravimetria$masa_cascara_corregida <- masas.corregidas.cascara
+
+for(i in 1:9){
+  
+  u_masas.cascara[i] <-  u_masa(lectura=2.500,
+      densidad = 1085,
+      balanza = "AES220")$m_s$u_ms
+}
+
+tabla.gravimetria$u_masa_cascara_corregida <- u_masas.cascara
+```
+
+
+# Incertidumbre asociada a la repetibilidad
+
+Teniendo en cuenta que ya determinamos una medida de dispersión de los resultados de masa final, es decir la masa de $caO$ que queda al final de la calcinación, podemos determinar la incertidumbre asociada a la repetibilidad como $u_R = \frac{s}{\sqrt{n}}$
+
+```{r}
+tabla.gravimetria$u_R <- sd.masa/sqrt(3)
+R = 1
+```
+
+# Creación de la función que estima los coeficientes de sensibilidad
+
+Ya hemos creado la función en `R` que nos permite calcular el porcentale de $CaCO_3$ mediante gravimetría, ésta es: `CaCO3_grav`. Al utilizar la función `Deriv` creamos la función `c_i` que va a calcular los coeficientes de sensibilidad con unos valores dados de las variables de influencia:
+
+```{r}
+library(Deriv)
+
+c_i_grav = Deriv(CaCO3_grav,c('W_CaCO3', 
+                       'W_CaO',
+                       'FD', 
+                       'm_muestra', 
+                       'R', 
+                       'm_final'))
+```
+
+## Valores de los coeficientes de sensiblidad para la estimación de $\%CaCO_3$ mediante gravimetría.
+
+Ahora podemos crear una matriz llamada `coef.matrix.grav` en la cual vamos a guardar, las 9 muestras en las filas, y en cada columna cada uno de los coeficientes de sensibilidad. 
+
+Utilizando el ciclo `for` vamos a iterar fila por fila, es decir muestra por muestra, para calcular asi un vector de coeficientes para cada muestra, y guardarlo en cada una de las filas de `coef.matrix.grav`
+
+```{r}
+coef.matrix.grav <- matrix(nrow = 9, ncol = 6)
+
+for(i in 1:9){
+  
+  coef.matrix.grav[i,] <- c_i_grav(W_CaCO3 = W_CaCO3$MM,
+                         W_CaO = W_CaO$MM,
+                         FD = 50/10,
+                         m_muestra = tabla.gravimetria$masa_cascara_corregida[i],
+                         R = 1,
+                         m_final = tabla.gravimetria$masa_corregida_CaO[i])
+
+}
+
+```
+
+## Matriz recogiendo las incertidumbres estándar de cada una de las fuentes, para gravimetría
+
+Ahora podemos crear una matriz que contenga fila por fila, cada una de las incertidumbres que ya calculamos para cada muestra. podemos ajustarlas por columnas, al extraerlas de `tabla.gravimetria`:
+
+```{r}
+u_matrix_grav <- data.frame(u_W_CaCO3 = rep(W_CaCO3$u_MM,9),
+                            u_W_CaO = rep(W_CaO$u_MM,9),
+                            u_FD = tabla.gravimetria$u_dilucion,
+                            u_m_muestra = tabla.gravimetria$u_masa_cascara_corregida,
+                            u_R = tabla.gravimetria$u_R,
+                            u_m_final = tabla.gravimetria$u_masa_CaO)
+```
+
+Teniendo las dos matrices, una de coeficientes de sensibilidad y otra de incertidumbres, podemos calcular el valor de incertidumbre combinada para cada uno de los 9 grupos de laboratorio, y guardarla cada posición del vector `u_c_grav`.
+
+```{r}
+u_c_grav <- vector('numeric', 9)
+```
+
+Luego calculamos fila por fila, la incertidumbre combinada:
+
+```{r}
+for(i in 1:9){
+  
+  u_c_grav[i] <- sqrt(sum((coef.matrix.grav[i,]*u_matrix_grav[i,])^2))
+}
+```
+
+
+## Incertidumbres expandidas 
+
+Una vez tenemos el valor de las incertidumbres combinadas para cada muestra, podemos escoger un factor de cobertura de 2 y expresar la incertidumbre expandida.
+
+```{r}
+k=2
+U_grav=k*u_c_grav
+```
+
+
+## Contribuciones de cada fuente
+
+Podemos calcular las contribuciones de cada fuente, calculando la fracción de cada incertidumbre multiplicada por cada uno de sus coeficientes de sensiblidad, dividido por la incertidumbre combinada, para cada una de las muestras.
+
+```{r}
+contribuciones.grav <- matrix(nrow = 9, ncol = 6)
+
+for(i in 1:9){
+  for(j in 1:6){
+  
+  contribuciones.grav[i,j] <- ((coef.matrix.grav[i,j]*u_matrix_grav[i,j])^2)/u_c_grav[i]^2
+  }
+}
+
+colnames(contribuciones.grav) <- colnames(u_matrix_grav)
+```
+
+Con el calculo de todas las fuentes de incertidumbre, y la incertidumbre combinada, podemos graficar y compararlas entre muestras:
+
+
+```{r}
+par(las=2)
+par(mfrow = c(2,5))
+
+for(i in 1:9){
+  barplot(contribuciones.grav[i,]*100,
+        xlab="(%)",
+        ylab=" ", 
+        main= paste('contribuciones #', as.character(c(1,3:10))[i]),
+        horiz =T)
+  
+}
+```
+
+# Reporte de las concentraciones de cada grupo:
+
+primero, calculamos las concentraciones de cada uno de las muestras, a partir de los volumenes promediados:
+
+```{r}
+concentraciones_grav <- vector('numeric', 9)
+
+for (i in 1:9){
+  
+  concentraciones_grav[i] <- CaCO3_grav(W_CaCO3 = W_CaCO3$MM, 
+                       W_CaO = W_CaO$MM,
+                        FD = 50/10, 
+                       m_muestra = tabla.gravimetria$masa_cascara_corregida[i], 
+                       R = 1, 
+                       m_final = tabla.gravimetria$masa_corregida_CaO[i])
+    
+}
+
+```
+
+
+podemos unir los resultados con sus incertidumbres:
+
+```{r}
+mesurando.grav <- data.frame(`% p/p CaCO3` = concentraciones_grav, 
+                        `U` = U_grav)
+colnames(mesurando.grav) <- c('CaCO3 (% p/p)','U')
+```
+
+
+Ahora podemos manipular la tabla `mesurando` para comparar los resultados con la volumetria agregando un espacio en la posición 2:
+
+```{r}
+mesurando_grav_2 <- data.frame(a = rep(NA,10), b = rep(NA,10))
+
+mesurando_grav_2[1,] <- mesurando.grav[1,] 
+ mesurando_grav_2[2,] <-  rep(NA,2)
+   mesurando_grav_2[3:10,] <- mesurando.grav[2:9,] 
+  colnames(mesurando_grav_2) <- c('CaCO3 (% p/p) grav','U')
+```
+
+
+# Reporte final
+
+Podemos unir por columnas los objetos `mesurando.grav` y `mesurando.vol` utilizando la función `cbind`:
+
+```{r}
+tabla.final <- cbind(mesurando.volumen,mesurando_grav_2)
+knitr::kable(tabla.final)
+```
