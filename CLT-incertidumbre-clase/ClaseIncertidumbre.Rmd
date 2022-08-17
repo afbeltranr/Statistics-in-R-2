@@ -872,7 +872,7 @@ volumenes.promedio$volumenes.promedio[1] <- mean(puntos.finales[[1]]$PE,puntos.f
 
 
 volumenes.promedio <- as.data.frame(volumenes.promedio)
-volumenes.promedio$U.PF.Class[1] <- sqrt(puntos.finales[[1]]$u_PE+puntos.finales[[3]]$u_PE+puntos.finales[[5]]$u_PE)
+volumenes.promedio$U.PF.Class[1] <- sqrt(puntos.finales[[1]]$u_PE^2+puntos.finales[[3]]$u_PE^2+puntos.finales[[5]]$u_PE^2)
 
 ```
 
@@ -935,6 +935,8 @@ for(i in 1:10){
   
 }
 
+volumenes.promedio$u_bureta <- U_buretas
+
 ```
 
 
@@ -961,7 +963,7 @@ barplot(volumenes.promedio$u_V_EDTA, main = 'u volumen EDTA' , ylim = c(0,0.5))
 
 Ya que todos los grupos tuvieron la destreza de pesar 0.500 g, podemos calcular la incertidumbre dada por la pesada de esta muestra de la siguiente manera:
 
-* Para este experimento se determino la densidad de la cáscara de huevo como: $1085 \dfrac{kg}{L}$
+* Para este experimento se determino la densidad de la cáscara de huevo como: $1085 \dfrac{kg}{m^3}$
 
 
 ```{r}
@@ -981,6 +983,10 @@ for(i in 1:10){
       densidad = 1085,
       balanza = "ME204")$m_s$u_ms
 }
+
+# u_masas[1:10] <-  u_masa(lectura=0.500,
+#       densidad = 1085,
+#       balanza = "ME204")$m_s$u_ms
 
 volumenes.promedio$masas_corregidas <- masas.corregidas
 volumenes.promedio$u_masas <- u_masas
@@ -1016,6 +1022,7 @@ podemos calcular la incertidumbre estandar:
 ```{r}
 u_C_EDTA <- 0.001/2
 volumenes.promedio$u_C_EDTA <- rep(u_C_EDTA,10)
+volumenes.promedio$u_C_EDTA <- u_C_EDTA
 ```
 
 
@@ -1064,7 +1071,7 @@ for(i in 1:10){
 ### Matriz recogiendo las incertidumbres estándar de las distintas fuentes
 
 ```{r}
-u_matrix = data.frame(FD = volumenes.promedio$u_dilucion,
+u_matrix <- data.frame(FD = volumenes.promedio$u_dilucion,
                       V_EDTA = volumenes.promedio$u_V_EDTA,
                       W_CaCO3 = rep(W_CaCO3$u_MM,10),
                       C_EDTA = volumenes.promedio$u_C_EDTA,
@@ -1134,7 +1141,7 @@ for(i in 1:10){
         xlab="(%)",
         ylab=" ", 
         main= paste('contribuciones #', as.character(i)),
-        horiz =T)
+        horiz =T) # el barplot se ve horizontal
   
 }
 ```
@@ -1261,9 +1268,9 @@ Luego podemos determinar las incertidumbres asociadas a las mediciones de dichas
 
 u_masa_CaO <- vector('list',9)
 
-for(i in 1:9){
+for(banano in 1:9){
 
- u_masa_CaO[[i]] <- u_masa(lectura = tabla.gravimetria$masas.promedio.CaO[i],
+ u_masa_CaO[[banano]] <- u_masa(lectura = tabla.gravimetria$masas.promedio.CaO[banano],
                           densidad = 3340,
                           balanza= 'ME204')$m_s$u_ms
 }
@@ -1315,7 +1322,6 @@ tabla.gravimetria$u_dilucion <- u_dilucion
 ```
 
 
-
 # Incertidumbre asociada a la medición de masa para la muestra de cáscara de huevo
 
 Ya que todos los grupos tuvieron la destreza de pesar la misma masa, 2.500 g, podemos estimar la incertidumbre asociada a la medición de esta masa, teniendo en cuenta que se determinó experimentalmente que la masa de la cáscara de huevo es $1085 \dfrac{kg}{L}$:
@@ -1360,7 +1366,7 @@ Ya hemos creado la función en `R` que nos permite calcular el porcentale de $Ca
 ```{r}
 library(Deriv)
 
-c_i_grav = Deriv(CaCO3_grav,c('W_CaCO3', 
+c_i_grav <- Deriv(CaCO3_grav,c('W_CaCO3', 
                        'W_CaO',
                        'FD', 
                        'm_muestra', 
